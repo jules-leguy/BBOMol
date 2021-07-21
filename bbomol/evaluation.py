@@ -1,6 +1,4 @@
 import numpy as np
-from tqdm import tqdm
-
 
 def compute_best_so_far(obj_calls, obj_values, max_obj_calls, problem_type="max"):
     """

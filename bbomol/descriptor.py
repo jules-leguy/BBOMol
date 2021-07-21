@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from io import StringIO
 
-from evomol.evomol.evaluation_dft import rdkit_mmff94_xyz, obabel_mmff94_xyz
-from evomol.evomol.evaluation_entropy import extract_shingles
+from evomol.evaluation_dft import rdkit_mmff94_xyz, obabel_mmff94_xyz
+from evomol.evaluation_entropy import extract_shingles
 from sklearn.base import TransformerMixin, BaseEstimator
 from dscribe.descriptors import SOAP, CoulombMatrix, MBTR
 from joblib import Parallel, delayed, Memory

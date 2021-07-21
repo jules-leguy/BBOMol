@@ -1,5 +1,3 @@
-import time
-
 import joblib
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprint
 from rdkit.Chem.rdmolfiles import MolFromSmiles

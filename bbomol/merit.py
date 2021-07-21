@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-from bbo.bboalg import compute_descriptors
-from evomol.evomol.evaluation import EvaluationStrategy
+from .bboalg import compute_descriptors
+from evomol.evaluation import EvaluationStrategy
 import numpy as np
 from scipy.stats import norm
 

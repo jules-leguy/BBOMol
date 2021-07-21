@@ -4,7 +4,7 @@ from abc import abstractmethod
 from concurrent.futures.process import ProcessPoolExecutor
 
 import numpy as np
-from evomol.evomol.molgraphops.molgraph import MolGraph
+from evomol.molgraphops.molgraph import MolGraph
 from joblib import Parallel, delayed, Memory
 from rdkit.Chem.QED import qed
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprint

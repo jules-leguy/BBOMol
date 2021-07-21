@@ -1,14 +1,13 @@
 import csv
-import itertools
 import time
 from os import makedirs
 from os.path import join
 
 import numpy as np
-from evomol.evomol import run_model
+from evomol import run_model
 from joblib import dump, Parallel, delayed
 from sklearn.metrics import r2_score
-from bbo.stop_criterion import MultipleStopCriterion, FileStopCriterion
+from .stop_criterion import MultipleStopCriterion, FileStopCriterion
 
 
 def save_dict_to_csv(d, csv_path, ignore_keys=None):
