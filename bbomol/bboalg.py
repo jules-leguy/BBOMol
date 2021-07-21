@@ -154,12 +154,12 @@ def run_evomol_merit_optimization(merit_function, results_path, evomol_parameter
 
 class BBOAlg:
 
-    def __init__(self, init_dataset_smiles, test_dataset_smiles_dict, test_objectives_dict, descriptor, objective,
-                 merit_function, surrogate, stop_criterion, pipeline, evomol_parameters, evomol_init_pop_size,
-                 n_evomol_runs, n_best_evomol_retrieved, evomol_init_pop_strategy, objective_init_pop=None,
-                 score_assigned_to_failed_solutions=None, results_path="BBO_results", n_jobs=1,
-                 pre_dispatch='2 * n_jobs', batch_size='auto', save_surrogate_model=False,
-                 period_compute_test_predictions=50, period_save=50, save_pred_test_values=False):
+    def __init__(self, init_dataset_smiles, descriptor, objective, merit_function, surrogate, stop_criterion,
+                 evomol_parameters, evomol_init_pop_size, n_evomol_runs, n_best_evomol_retrieved,
+                 evomol_init_pop_strategy, objective_init_pop=None, score_assigned_to_failed_solutions=None,
+                 results_path="BBO_results", n_jobs=1, pre_dispatch='2 * n_jobs', batch_size='auto',
+                 save_surrogate_model=False, period_compute_test_predictions=50, period_save=50,
+                 save_pred_test_values=False, test_dataset_smiles_dict=None, test_objectives_dict=None, pipeline=None):
         """
         Main class performing BBO optimization.
         :param init_dataset_smiles: smiles list to be used as initial dataset
@@ -197,8 +197,8 @@ class BBOAlg:
         """
 
         self.init_dataset_smiles = init_dataset_smiles
-        self.test_dataset_smiles_dict = test_dataset_smiles_dict
-        self.test_objective_dict = test_objectives_dict
+        self.test_dataset_smiles_dict = test_dataset_smiles_dict if test_dataset_smiles_dict is not None else {}
+        self.test_objective_dict = test_objectives_dict if test_objectives_dict is not None else {}
 
         self.descriptor = descriptor
         self.objective = objective
