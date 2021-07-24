@@ -12,7 +12,7 @@ $ git clone https://github.com/jules-leguy/BBOMol.git     # Cloning repository
 $ cd BBOMol                                               # Moving into BBOMol directory
 $ conda activate evomolenv                                # Activating anaconda environment
 $ conda install scikit-learn=0.22.1                       # Installing additional scikit-learn dependency
-$ conda install dscribe=0.4.0                             # Installing additional DScribe dependency
+$ pip install dscribe                                     # Installing additional DScribe dependency
 $ python -m pip install .                                 # Installing BBOMol
 ```
 
