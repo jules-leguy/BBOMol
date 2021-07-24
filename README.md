@@ -9,6 +9,7 @@ and **DFT and Molecular Mechanics optimization** sections.
 
 ```shell script
 $ git clone https://github.com/jules-leguy/BBOMol.git     # Cloning repository
+$ cd BBOMol                                               # Moving into BBOMol directory
 $ conda activate evomolenv                                # Activating anaconda environment
 $ conda install scikit-learn=0.22.1                       # Installing additional scikit-learn dependency
 $ python -m pip install .                                 # Installing BBOMol
