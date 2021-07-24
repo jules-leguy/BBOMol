@@ -13,6 +13,7 @@ $ cd BBOMol                                               # Moving into BBOMol d
 $ conda activate evomolenv                                # Activating anaconda environment
 $ conda install scikit-learn=0.22.1                       # Installing additional scikit-learn dependency
 $ pip install dscribe                                     # Installing additional DScribe dependency
+$ conda install -c conda-forge notebook                   # Installing jupyter-notebook to access the reproduction notebooks
 $ python -m pip install .                                 # Installing BBOMol
 ```
 
