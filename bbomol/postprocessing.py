@@ -387,9 +387,12 @@ def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experime
 
     # Extracting all results
     for folder_name in experiments_folder_names:
-        curr_model_data = extract_evomol_experiment_data(join(evomol_multiple_data_root, folder_name))
 
-        for k in keys:
-            output_dict[k].append(curr_model_data[k])
+        if exists(join(evomol_multiple_data_root, folder_name)):
+
+            curr_model_data = extract_evomol_experiment_data(join(evomol_multiple_data_root, folder_name))
+
+            for k in keys:
+                output_dict[k].append(curr_model_data[k])
 
     return output_dict
