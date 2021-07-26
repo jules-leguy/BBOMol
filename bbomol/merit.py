@@ -130,7 +130,8 @@ class SurrogateValueMerit(Merit):
 
 class ExpectedImprovementMerit(Merit):
 
-    def __init__(self, descriptor, pipeline, surrogate, xi=0.01, noise_based=False, init_pop_zero_EI=True):
+    def __init__(self, descriptor, pipeline, surrogate, xi=0.01, noise_based=False, init_pop_zero_EI=True,
+                 additional_score_strategy=None):
         """
         Expected improvement merit function. Based on http://krasserm.github.io/2018/03/21/bayesian-optimization/
         :param xi: xi exploration parameter
@@ -141,7 +142,8 @@ class ExpectedImprovementMerit(Merit):
         See http://krasserm.github.io/2018/03/21/bayesian-optimization/ and
         https://arxiv.org/pdf/1012.2599.pdf and https://arxiv.org/abs/1012.2599
         """
-        super().__init__(descriptors=descriptor, pipeline=pipeline, surrogate=surrogate)
+        super().__init__(descriptors=descriptor, pipeline=pipeline, surrogate=surrogate,
+                         additional_score_strategy=additional_score_strategy)
         self.xi = xi
         self.noised_based = noise_based
         self.init_pop_zero_EI = init_pop_zero_EI
