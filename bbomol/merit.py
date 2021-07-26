@@ -11,7 +11,11 @@ class Merit(EvaluationStrategy):
     Base class of merit functions that are EvoMol EvaluationStrategy instances
     """
 
-    def __init__(self, descriptors, pipeline, surrogate):
+    def __init__(self, descriptors, pipeline, surrogate, additional_score_strategy=None):
+        """
+        @param additional_score_strategy: evomol.evaluation.EvaluationStrategyComposant instance that is used to compute
+        an additional score that is multiplied with the merit score value
+        """
         super().__init__()
         self.descriptor = descriptors
         self.pipeline = pipeline
@@ -21,6 +25,8 @@ class Merit(EvaluationStrategy):
         # of SMILES at any time (cf. self.update_training_dataset_method)
         self.dataset_X_transformed = None
         self.dataset_smiles_list = None
+
+        self.additional_score_strategy = additional_score_strategy
 
     def update_training_dataset(self, dataset_X, dataset_y, dataset_smiles):
         """
@@ -53,6 +59,9 @@ class Merit(EvaluationStrategy):
 
         if success[0]:
             score = self.compute_merit_value(X)
+
+            if self.additional_score_strategy is not None:
+                score = score * self.additional_score_strategy.evaluate_individual(individual)[0]
 
             return score, [score]
 
@@ -90,8 +99,14 @@ class Merit(EvaluationStrategy):
                 # Extracting the transformed descriptors of given SMILES
                 X = self.dataset_X_transformed[mask_smi]
 
+                score = self.compute_merit_value(X)
+
+                # Computing additional score
+                if self.additional_score_strategy is not None:
+                    score = score * self.additional_score_strategy.evaluate_individual(ind)[0]
+
                 # Computing score
-                self.scores.append(self.compute_merit_value(X))
+                self.scores.append(score)
 
 
 class SurrogateValueMerit(Merit):
