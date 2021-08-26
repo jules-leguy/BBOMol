@@ -238,6 +238,8 @@ class BBOAlg:
         }
         for key in self.objective.keys():
             self.dataset_dict[key] = np.array([])
+        for key in self.merit_function.keys() + ["value"]:
+            self.dataset_dict["merit_" + key] = np.array([])
 
         # Dictionary containing all information about the proposed solutions that failed
         self.failed_dataset_dict = {
@@ -247,6 +249,8 @@ class BBOAlg:
             "failed_descriptors": np.array([]),  # Whether the computation of descriptors has failed
             "failed_objective": np.array([])  # Whether the computation of an objective value has failed
         }
+        for key in self.merit_function.keys() + ["value"]:
+            self.failed_dataset_dict["merit_" + key] = np.array([])
 
         # Dictionary containing all information about the test datasets
         self.test_datasets_dicts = {}
@@ -373,13 +377,17 @@ class BBOAlg:
 
         # Computing descriptors and objective function values of initial dataset
         success_dict["smiles"], success_dict["X"], success_dict["obj_value"], success_all_scores, \
-        success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask,\
+        success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask, \
         failed_desc_bool_mask, failed_obj_bool_mask, time_desc, time_obj = \
             self.compute_descriptors_objective_values(input_smiles, objective)
 
         # Recording the other scores values
         for i, key in enumerate(objective.keys()):
             success_dict[key] = success_all_scores.T[i].reshape(-1, )
+
+        # Setting merit value to undefined for initial population solutions
+        for i, key in enumerate(self.merit_function.keys() + ["value"]):
+            success_dict["merit_" + key] = np.full(len(success_dict["smiles"], ), np.nan)
 
         # Setting introduction step
         if "step" in success_dict:
@@ -407,6 +415,10 @@ class BBOAlg:
         failed_dict["failed_descriptors"] = failed_desc_bool_mask[failed_bool_mask]
         failed_dict["failed_objective"] = failed_obj_bool_mask[failed_bool_mask]
 
+        # Setting merit value to undefined for initial population solutions
+        for i, key in enumerate(self.merit_function.keys() + ["value"]):
+            failed_dict["merit_" + key] = np.full(len(failed_smiles_list, ), np.nan)
+
         # If self.score_assigned_to_failed_solutions is not None, also adding the failed solutions in the dataset with
         # the given score value
         if self.score_assigned_to_failed_solutions is not None and not is_test_dataset:
@@ -424,6 +436,11 @@ class BBOAlg:
                 success_dict[key] = np.concatenate([success_dict[key],
                                                     np.full((failed_dict["smiles"].shape[0],),
                                                             self.score_assigned_to_failed_solutions)])
+
+            # Setting merit value to undefined for initial population solutions
+            for i, key in enumerate(self.merit_function.keys() + "value"):
+                success_dict["merit_" + key] = np.concatenate([success_dict[key],
+                                                               np.full((failed_dict["smiles"].shape[0],), np.nan)])
 
             if "step" in success_dict:
                 success_dict["step"] = np.concatenate([success_dict["step"],
@@ -671,9 +688,12 @@ class BBOAlg:
                 # Computing time for fitting surrogate model
                 time_fit_surrogate = time.time() - tstart_step
 
-                # Notifying the surrogate function that the surrogate model has been retrained on the given dataset
-                self.merit_function.update_training_dataset(self.dataset_dict["X"], self.dataset_dict["obj_value"],
-                                                            self.dataset_dict["smiles"])
+                # Notifying the merit function that the surrogate model has been retrained on the given dataset
+                self.merit_function.call_method_on_leaves("update_training_dataset", {
+                    "dataset_X": self.dataset_dict["X"],
+                    "dataset_y": self.dataset_dict["obj_value"],
+                    "dataset_smiles": self.dataset_dict["smiles"]
+                })
 
                 # Computing test data
                 tstart_test_prediction = time.time()
@@ -698,19 +718,24 @@ class BBOAlg:
                         dataset_y=self.dataset_dict["obj_value"], evomol_init_pop_size=self.evomol_init_pop_size
                     ) for i in range(self.n_evomol_runs))
 
+                time_optim = time.time() - tstart_optim
+
                 results_smiles = []
+                results_merit_scores = []
+                results_merit_sub_scores = []
 
                 # Retrieving the best solutions from EvoMol optimizations
                 for i in range(self.n_evomol_runs):
-                    results_smiles.extend(
-                        evomol_instances[i].get_k_best_individuals_smiles(self.n_best_evomol_retrieved,
-                                                                          tabu_list=list(self.dataset_dict[
-                                                                                             "smiles"]) + results_smiles))
+                    curr_smiles, curr_scores, curr_sub_scores = evomol_instances[i].get_k_best_individuals_smiles(
+                        self.n_best_evomol_retrieved,
+                        tabu_list=list(self.dataset_dict["smiles"]) + results_smiles)
 
-                time_optim = time.time() - tstart_optim
+                    results_smiles.extend(curr_smiles)
+                    results_merit_scores.extend(curr_scores)
+                    results_merit_sub_scores.extend(curr_sub_scores)
 
-                # Flattening the list and removing duplicates
-                results_smiles = list(set(results_smiles))
+                # Flattening the list of smiles
+                results_smiles = list(np.array(results_smiles).reshape(-1, ))
 
                 print(results_smiles)
 
@@ -749,6 +774,14 @@ class BBOAlg:
                     self.dataset_dict[key] = np.concatenate(
                         [self.dataset_dict[key], success_all_scores.T[i].reshape(-1, )])
 
+                # Recording the merit scores for successful solutions
+                self.dataset_dict["merit_value"] = np.concatenate([
+                    self.dataset_dict["merit_value"], np.array(results_merit_scores)[success_int_mask]])
+                for i, key in enumerate(self.merit_function.keys()):
+                    self.dataset_dict["merit_" + key] = np.concatenate([
+                        self.dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[success_int_mask].T[i].reshape(-1,)]
+                    )
+
                 # Updating attributes for failed solutions
                 self.failed_dataset_dict["smiles"] = np.concatenate([self.failed_dataset_dict["smiles"],
                                                                      failed_smiles_list])
@@ -760,6 +793,14 @@ class BBOAlg:
                     [self.failed_dataset_dict["failed_descriptors"], failed_desc_bool_mask[failed_bool_mask]])
                 self.failed_dataset_dict["failed_objective"] = np.concatenate(
                     [self.failed_dataset_dict["failed_objective"], failed_obj_bool_mask[failed_bool_mask]])
+
+                # Recording the merit scores for failed solutions
+                self.failed_dataset_dict["merit_value"] = np.concatenate([
+                    self.failed_dataset_dict["merit_value"], np.array(results_merit_scores)[failed_bool_mask]])
+                for i, key in enumerate(self.merit_function.keys()):
+                    self.failed_dataset_dict["merit_" + key] = np.concatenate([
+                        self.failed_dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1,)
+                    ])
 
                 # If self.score_assigned_to_failed_solutions is not None, failing solutions are also inserted in the
                 # success dataset with the given objective value
@@ -780,6 +821,14 @@ class BBOAlg:
                         self.dataset_dict[key] = np.concatenate([self.dataset_dict[key],
                                                                  np.full((len(failed_smiles_list),),
                                                                          self.score_assigned_to_failed_solutions)])
+
+                    # Recording the merit scores values
+                    self.dataset_dict["merit_value"] = np.concatenate([
+                        self.dataset_dict["merit_value"], np.array(results_merit_scores)[failed_bool_mask]])
+                    for i, key in enumerate(self.merit_function.keys()):
+                        self.dataset_dict["merit_" + key] = np.concatenate([
+                            self.dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1,)
+                        ])
 
                     self.dataset_dict["step"] = np.concatenate([self.dataset_dict["step"],
                                                                 np.full((len(failed_smiles_list),), self.curr_step)])

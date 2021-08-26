@@ -11,11 +11,7 @@ class Merit(EvaluationStrategy):
     Base class of merit functions that are EvoMol EvaluationStrategy instances
     """
 
-    def __init__(self, descriptors, pipeline, surrogate, additional_score_strategy=None):
-        """
-        @param additional_score_strategy: evomol.evaluation.EvaluationStrategyComposant instance that is used to compute
-        an additional score that is multiplied with the merit score value
-        """
+    def __init__(self, descriptors, pipeline, surrogate):
         super().__init__()
         self.descriptor = descriptors
         self.pipeline = pipeline
@@ -25,8 +21,6 @@ class Merit(EvaluationStrategy):
         # of SMILES at any time (cf. self.update_training_dataset_method)
         self.dataset_X_transformed = None
         self.dataset_smiles_list = None
-
-        self.additional_score_strategy = additional_score_strategy
 
     def update_training_dataset(self, dataset_X, dataset_y, dataset_smiles):
         """
@@ -59,10 +53,6 @@ class Merit(EvaluationStrategy):
 
         if success[0]:
             score = self.compute_merit_value(X)
-
-            if self.additional_score_strategy is not None:
-                score = score * self.additional_score_strategy.evaluate_individual(individual)[0]
-
             return score, [score]
 
         else:
@@ -101,10 +91,6 @@ class Merit(EvaluationStrategy):
 
                 score = self.compute_merit_value(X)
 
-                # Computing additional score
-                if self.additional_score_strategy is not None:
-                    score = score * self.additional_score_strategy.evaluate_individual(ind)[0]
-
                 # Computing score
                 self.scores.append(score)
 
@@ -130,8 +116,7 @@ class SurrogateValueMerit(Merit):
 
 class ExpectedImprovementMerit(Merit):
 
-    def __init__(self, descriptor, pipeline, surrogate, xi=0.01, noise_based=False, init_pop_zero_EI=True,
-                 additional_score_strategy=None):
+    def __init__(self, descriptor, pipeline, surrogate, xi=0.01, noise_based=False, init_pop_zero_EI=True):
         """
         Expected improvement merit function. Based on http://krasserm.github.io/2018/03/21/bayesian-optimization/
         :param xi: xi exploration parameter
@@ -142,8 +127,7 @@ class ExpectedImprovementMerit(Merit):
         See http://krasserm.github.io/2018/03/21/bayesian-optimization/ and
         https://arxiv.org/pdf/1012.2599.pdf and https://arxiv.org/abs/1012.2599
         """
-        super().__init__(descriptors=descriptor, pipeline=pipeline, surrogate=surrogate,
-                         additional_score_strategy=additional_score_strategy)
+        super().__init__(descriptors=descriptor, pipeline=pipeline, surrogate=surrogate)
         self.xi = xi
         self.noised_based = noise_based
         self.init_pop_zero_EI = init_pop_zero_EI
@@ -157,6 +141,8 @@ class ExpectedImprovementMerit(Merit):
 
     def update_training_dataset(self, dataset_X, dataset_y, dataset_smiles):
         super().update_training_dataset(dataset_X, dataset_y, dataset_smiles)
+
+        print("UPDATING TRAINING DATASET")
 
         # See http://krasserm.github.io/2018/03/21/bayesian-optimization/ and
         # https://arxiv.org/pdf/1012.2599.pdf and https://arxiv.org/abs/1012.2599 for the noise-based case
