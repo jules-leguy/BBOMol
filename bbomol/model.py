@@ -5,15 +5,15 @@ from rdkit.DataStructs.cDataStructs import TanimotoSimilarity
 from sklearn.base import BaseEstimator, RegressorMixin, MultiOutputMixin
 from sklearn.ensemble import BaggingRegressor
 import numpy as np
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import WhiteKernel
+from sklearn.model_selection import GridSearchCV
 
 
 class SurrogateModel(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     def uncertainty(self, X, smiles_list=None):
         raise NotImplementedError()
-
-    def set_training_smiles(self, training_smiles):
-        pass
 
     def fit(self, X, y, training_smiles=None):
         pass
@@ -44,7 +44,11 @@ class GPRSurrogateModelWrapper(SurrogateModel):
     def __init__(self, base_model):
         """
         Wrapper to use sklearn.gaussian_proccess.GaussianProcessRegressor as models providing an uncertainty estimation
-        :param base_model: sklearn.gaussian_proccess.GaussianProcessRegressor model
+        The model can either be a sklearn.gaussian_proccess.GaussianProcessRegressor instance of a
+        sklearn.model_selection.GridSearchCV instance wrapping a sklearn.gaussian_proccess.GaussianProcessRegressor
+        instance
+        :param base_model: sklearn.gaussian_proccess.GaussianProcessRegressor or sklearn.model_selection.GridSearchCV
+        instance
         """
 
         self.model = base_model
@@ -52,13 +56,25 @@ class GPRSurrogateModelWrapper(SurrogateModel):
         self.std_last_X_predicted = None
 
     def fit(self, X, y=None, training_smiles=None):
+
+        # Fix in case of GridsearchCV with the starting population : copying several times the samples in initial step
+        # if there are less samples that requested cross validations
+        if isinstance(self.model, GridSearchCV):
+            if len(X) < self.model.cv:
+                X = np.tile(X, (self.model.cv, 1))
+                y = np.tile(y, self.model.cv)
+
         self.model.fit(X, y)
         self.last_X_predicted = None
         self.std_last_X_predicted = None
 
     def predict(self, X):
 
-        y, std = self.model.predict(X, return_std=True)
+        if isinstance(self.model, GaussianProcessRegressor):
+            y, std = self.model.predict(X, return_std=True)
+        elif isinstance(self.model, GridSearchCV):
+            y, std = self.model.best_estimator_.predict(X, return_std=True)
+
         self.last_X_predicted = X
         self.std_last_X_predicted = std
         return y
@@ -70,6 +86,44 @@ class GPRSurrogateModelWrapper(SurrogateModel):
         else:
             _, std = self.model.predict(X, return_std=True)
             return std
+
+    def get_model_instance(self):
+
+        if isinstance(self.model, GaussianProcessRegressor):
+            return self.model
+        elif isinstance(self.model, GridSearchCV):
+            return self.model.best_estimator_
+
+    def get_kernel_instance(self):
+        return self.get_model_instance().kernel_
+
+    def get_kernel_noise_values(self):
+        """
+        Returning a tuple corresponding to the noise values estimated by the model
+        alpha_gpr is the noise parameterised in the GPR model
+        (see https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html)
+        whitek_gpr is the noise estimated by the white kernel if defined
+        (see https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.kernels.WhiteKernel.html)
+        :return (alpha_gpr, whitek_gpr)
+        """
+
+        # Extracting alpha value
+        alpha_gpr = self.get_model_instance().get_params()["alpha"]
+
+        # Extracting kernel
+        kernel = self.get_kernel_instance()
+
+        whitekernel_idx = None
+        # Iterating over all kernels to find a WhiteKernel
+        for i in range(1, 10):
+            if "k" + str(i) in kernel.get_params() and isinstance(kernel.get_params()["k" + str(i)], WhiteKernel):
+                whitekernel_idx = i
+
+        # Extracting whitekernel noise value if exists
+        whitek_gpr = kernel.get_params()[
+            "k" + str(whitekernel_idx) + "__noise_level"] if whitekernel_idx is not None else np.nan
+
+        return alpha_gpr, whitek_gpr
 
 
 def _get_fingerprint(smiles):

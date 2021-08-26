@@ -6,7 +6,11 @@ from os.path import join
 import numpy as np
 from evomol import run_model
 from joblib import dump, Parallel, delayed
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import WhiteKernel
 from sklearn.metrics import r2_score
+
+from .model import GPRSurrogateModelWrapper
 from .stop_criterion import MultipleStopCriterion, FileStopCriterion
 
 
@@ -497,7 +501,7 @@ class BBOAlg:
         self.steps_trace = {k: [] for k in ["step", "obj_mean", "obj_med", "obj_min", "obj_max", "n_generated",
                                             "n_obj_calls", "step_duration", "fit_duration", "test_prediction_duration",
                                             "optim_duration", "desc_obj_comput_duration", "time_desc", "time_obj",
-                                            "alg_total_time", "min_desc_row_size"]}
+                                            "alg_total_time", "min_desc_row_size", "alpha_gpr", "whitek_gpr"]}
 
     def save(self, curr_step):
         """
@@ -603,7 +607,7 @@ class BBOAlg:
 
     def update_steps_data(self, curr_step, new_solutions_obj_values, time_step, time_fit, time_optim,
                           time_comput_desc_obj, time_desc, time_obj, time_test_prediction, alg_total_time,
-                          min_desc_row_size):
+                          min_desc_row_size, alpha_gpr=None, whitek_gpr=None):
         """
         Updating the self.step_trace data
         :param curr_step: id of current step
@@ -617,6 +621,8 @@ class BBOAlg:
         :param time_test_prediction: duration of the test of the surrogate on the test set(s)
         :param alg_total_time: total time since the beginning of the algorithm
         :param min_desc_row_size: minimum possible value of descriptor size
+        :param alpha_gpr: alpha value of the GPR kernel (if defined)
+        :param whitek: value of the WhiteKernel of the GPR kernel (if defined)
         :return:
         """
 
@@ -638,6 +644,8 @@ class BBOAlg:
         self.steps_trace["time_obj"].append(time_obj)
         self.steps_trace["alg_total_time"].append(alg_total_time)
         self.steps_trace["min_desc_row_size"].append(min_desc_row_size)
+        self.steps_trace["alpha_gpr"].append(alpha_gpr)
+        self.steps_trace["whitek_gpr"].append(whitek_gpr)
 
     def run(self):
         """
@@ -657,7 +665,7 @@ class BBOAlg:
         self.update_steps_data(curr_step=0, new_solutions_obj_values=[], time_step=0, time_fit=0, time_optim=0,
                                time_comput_desc_obj=0, time_desc=0, time_obj=0, time_test_prediction=0,
                                alg_total_time=time.time() - alg_start_time,
-                               min_desc_row_size=self.descriptor.min_row_size())
+                               min_desc_row_size=self.descriptor.min_row_size(), alpha_gpr=np.nan, whitek_gpr=np.nan)
 
         # Saving results data
         self.save(curr_step=0)
@@ -841,6 +849,12 @@ class BBOAlg:
 
                 time_step = time.time() - tstart_step
 
+                # Extracting kernel data if relevant
+                if isinstance(self.surrogate, GPRSurrogateModelWrapper):
+                    alpha_gpr, whitek_gpr = self.surrogate.get_kernel_noise_values()
+                else:
+                    alpha_gpr, whitek_gpr = np.nan, np.nan
+
                 # Updating steps data
                 self.update_steps_data(curr_step=self.curr_step, new_solutions_obj_values=success_y,
                                        time_step=time_step, time_fit=time_fit_surrogate, time_optim=time_optim,
@@ -849,7 +863,9 @@ class BBOAlg:
                                        time_obj=time_obj,
                                        time_test_prediction=time_test_prediction,
                                        alg_total_time=time.time() - alg_start_time,
-                                       min_desc_row_size=self.descriptor.min_row_size())
+                                       min_desc_row_size=self.descriptor.min_row_size(),
+                                       alpha_gpr=alpha_gpr,
+                                       whitek_gpr=whitek_gpr)
 
                 # Saving results data
                 if self.curr_step % self.period_save == 0:
