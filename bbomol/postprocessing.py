@@ -139,10 +139,19 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
         reader = csv.reader(f)
         for i, row in enumerate(reader):
 
-            # Checking if contains success column
             if i == 0:
+
+                # Checking if contains success column
                 contains_success_col = "success" in row
 
+                # Extracting additional columns
+                row_size = len(row)
+                row_idx_to_key = {}
+                additional_data_dict_dataset = {}
+                for j in range(4, row_size):
+                    row_idx_to_key[j] = row[j]
+                    additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]] = []
+                    additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]] = []
             else:
 
                 # Extracting current row values
@@ -161,6 +170,10 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         success_dataset_obj_value.append(float(obj_value))
                         success_dataset_n_calls.append(int(n_calls))
 
+                        # Extracting data in additional columns
+                        for j in range(4, row_size):
+                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]].append(row[j])
+
                     else:
                         failed_step.append(int(step))
                         failed_smiles.append(smiles)
@@ -168,25 +181,43 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         failed_objective.append(None)
                         failed_n_calls.append(int(n_calls))
 
+                        # Extracting data in additional columns
+                        for j in range(4, row_size):
+                            additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]].append(row[j])
+
     # Extracting data in failed_smiles.csv file if exists
     if exists(join(bbo_exp_root, "failed_dataset.csv")):
         with open(join(bbo_exp_root, "failed_dataset.csv"), "r") as f:
             reader = csv.reader(f)
             for i, row in enumerate(reader):
 
+                # Extracting additional columns
+                if i == 0:
+                    row_size = len(row)
+                    row_idx_to_key = {}
+                    additional_data_dict_failed_dataset = {}
+                    for j in range(5, row_size):
+                        row_idx_to_key[j] = row[j]
+                        additional_data_dict_failed_dataset["dataset_failed_"+row_idx_to_key[j]] = []
+
                 if i > 0:
 
                     # Recording data if conditions are met
                     if include_dataset_init_step or int(step) > 0:
-                        step, smiles, n_calls, failed_desc, failed_obj = row
 
+                        # Extracting data in deterministic columns
+                        step, smiles, n_calls, failed_desc, failed_obj = row[0], row[1], row[2], row[3], row[4]
                         failed_step.append(int(step))
                         failed_smiles.append(smiles)
                         failed_descriptors.append(failed_desc == "True")
                         failed_objective.append(failed_obj == "True")
                         failed_n_calls.append(int(n_calls))
 
-    return {
+                        # Extracting data in additional columns
+                        for j in range(5, row_size):
+                            additional_data_dict_failed_dataset["dataset_failed_"+row_idx_to_key[j]].append(row[j])
+
+    output_dict = {
         "dataset_success_step": success_dataset_introduction_step,
         "dataset_success_smiles": success_dataset_smiles,
         "dataset_success_obj_value": success_dataset_obj_value,
@@ -198,6 +229,10 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
         "dataset_failed_n_calls": failed_n_calls
     }
 
+    output_dict.update(additional_data_dict_dataset)
+    output_dict.update(additional_data_dict_failed_dataset)
+
+    return output_dict
 
 def extract_BBO_test_MAE(bbo_exp_root):
     """
