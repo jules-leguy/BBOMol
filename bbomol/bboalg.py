@@ -6,11 +6,9 @@ from os.path import join
 import numpy as np
 from evomol import run_model
 from joblib import dump, Parallel, delayed
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import WhiteKernel
 from sklearn.metrics import r2_score
 
-from .model import GPRSurrogateModelWrapper
+from .model import GPRSurrogateModelWrapper, compute_surrogate_predictions
 from .stop_criterion import MultipleStopCriterion, FileStopCriterion
 
 
@@ -39,28 +37,32 @@ def save_dict_to_csv(d, csv_path, ignore_keys=None):
             writer.writerow(row)
 
 
-def compute_descriptors(smiles_list, descriptor, pipeline, apply_pipeline=False):
+def compute_descriptors(smiles_list, descriptor, pipeline, apply_pipeline=False, filter_output=True):
     """
-    Computing the descriptors of given SMILES list. The molecules that cause an error during the computation of the
-    descriptors are ignored and absent of the resulting data. If the apply_pipeline parameter is set to True,
-    the given instance of sklearn.pipeline.Pipeline is used to transform the resulting descriptors.
+    Computing the descriptors of given SMILES list. If filter_output is set to True, the molecules that cause an error
+    during the computation of the descriptors are ignored and absent of the resulting data.
+    If the apply_pipeline parameter is set to True, the given instance of sklearn.pipeline.Pipeline is used to
+    transform the resulting descriptors.
     :param smiles_list: smiles list from which descriptors will be computed
     :param descriptor: instance of bbo.descriptor.Descriptor
     :param pipeline: instance of sklearn.pipeline.Pipeline
     :param apply_pipeline: whether to apply the pipeline on the resulting descriptors
-    :return: (descriptors matrix, list of SMILES after processing, success boolean filter on input smiles list)
+    :param filter_output: whether to filter the output descriptor array and smiles list so that they only contain
+    solutions processed with success
+    :return: (descriptors matrix, list of SMILES, success boolean filter on input smiles list)
     """
 
     # Computing descriptors
     X, success = descriptor.fit_transform(smiles_list)
 
-    # Filtering errors from the descriptors and the from smiles list
-    X, smiles_filtered = X[success], np.array(smiles_list)[success]
+    if filter_output:
+        # Filtering errors from the descriptors and from the smiles list
+        X, smiles_list = X[success], np.array(smiles_list)[success]
 
     if apply_pipeline and pipeline is not None:
         X = pipeline.transform(X)
 
-    return X, smiles_filtered, success
+    return X, smiles_list, success
 
 
 def compute_evomol_init_pop(evomol_init_pop_strategy, dataset_smiles, dataset_y, evomol_init_pop_size):
@@ -237,8 +239,10 @@ class BBOAlg:
             "X": np.array([]),  # Descriptor values
             "obj_value": np.array([]),  # Objective values
             "n_obj_calls": np.array([]),  # Number of calls to the objective function at the time of evaluation
-            "success": np.array([]),
-            "success_obj_computation_time": np.array([])
+            "success": np.array([]),  # Whether the solution was a success (descriptor + objective computation)
+            "success_obj_computation_time": np.array([]),  # Time to compute the objective value (s)
+            "surrogate_pred": np.array([]),  # Surrogate prediction at time of insertion
+            "surrogate_std": np.array([])  # Surrogate standard deviation at time of insertion
         }
         for key in self.objective.keys():
             self.dataset_dict[key] = np.array([])
@@ -251,7 +255,9 @@ class BBOAlg:
             "smiles": np.array([]),  # SMILES
             "n_obj_calls": np.array([]),  # Number of calls to the objective function at the time of evaluation
             "failed_descriptors": np.array([]),  # Whether the computation of descriptors has failed
-            "failed_objective": np.array([])  # Whether the computation of an objective value has failed
+            "failed_objective": np.array([]),  # Whether the computation of an objective value has failed
+            "surrogate_pred": np.array([]),  # Surrogate prediction at time of insertion
+            "surrogate_std": np.array([])  # Surrogate standard deviation at time of insertion
         }
         for key in self.merit_function.keys() + ["value"]:
             self.failed_dataset_dict["merit_" + key] = np.array([])
@@ -283,68 +289,91 @@ class BBOAlg:
         # Variable containing the trace of objective values of solutions generated each step
         self.steps_trace = None
 
-    def compute_descriptors_objective_values(self, smiles_list, objective):
+    def compute_descriptors_surrogate_objective_values(self, smiles_list, objective):
         """
         Computing the descriptors and the values of the objective function for the given smiles list. The smiles causing
         an error are discarded from the resulting dataset. Also returning integer masks identifying the smiles that
-        were successfully and unsuccessfully transformed (with the cause).
+        were successfully and unsuccessfully transformed (with the cause). Also returning the surrogate prediction and
+        uncertainty for both successful and unsuccessful solutions (if available in the latter case).
         :param smiles_list: list of smiles to be transformed
         :param objective : bbo.objective.EvoMolEvaluationStrategyWrapper instance computing the objective values
         :return: (success smiles, success descriptor values, success objective values, success all scores values,
         success objective computation times, success int mask, failed smiles, failed bool mask, failed because of
-        descriptor bool mask, failed because of objective bool mask)
+        descriptor bool mask, failed because of objective bool mask, success prediction, success uncertainty,
+        failed prediction, failed uncertainty)
         """
 
         # Computing descriptors for all input SMILES
         tstart_desc = time.time()
-        dataset_X_filtered, smiles_filtered, success_desc_bool_mask = compute_descriptors(smiles_list,
-                                                                                          descriptor=self.descriptor,
-                                                                                          pipeline=self.pipeline,
-                                                                                          apply_pipeline=False)
+        dataset_X, smiles_list, success_desc_bool_mask = compute_descriptors(smiles_list,
+                                                                             descriptor=self.descriptor,
+                                                                             pipeline=self.pipeline,
+                                                                             apply_pipeline=False,
+                                                                             filter_output=False)
+
         desc_comput_time = time.time() - tstart_desc
 
-        # Computing objective function values for all input SMILES and filtering to keep only the valid values
+        # Computing objective function values for all input SMILES
         tstart_obj = time.time()
         obj_values, all_scores, success_obj_values_bool_mask, obj_computation_times = objective.fit_transform(
             smiles_list)
         obj_comput_time = time.time() - tstart_obj
 
-        obj_values_filtered = obj_values[success_obj_values_bool_mask]
-        all_scores_filtered = np.array(all_scores)[success_obj_values_bool_mask]
-        obj_computation_times_filtered = np.array(obj_computation_times)[success_obj_values_bool_mask]
-
-        # Computing boolean and integer masks of SMILES failing the descriptors and failing the objective function
-        failed_desc_bool_mask = np.logical_not(success_desc_bool_mask)
-        success_desc_int_mask = np.arange(len(smiles_list))[success_desc_bool_mask]
-        failed_obj_bool_mask = np.logical_not(success_obj_values_bool_mask)
-        success_obj_int_mask = np.arange(len(smiles_list))[success_obj_values_bool_mask]
-
-        # Computing mask of smiles with both success for descriptors and success for objective function values
+        # Computing mask of valid solutions (passed both the descriptors and the objective computation)
         success_bool_mask = np.logical_and(success_desc_bool_mask, success_obj_values_bool_mask)
         success_int_mask = np.arange(len(smiles_list))[success_bool_mask]
 
-        # Computing output lists of SMILES, descriptor, objective values and times to compute the objective values
-        # for successful data
+        # Computing mask of failed solutions (that failed either the descriptor or objective computation)
+        failed_bool_mask = ~success_bool_mask
+        failed_desc_bool_mask = ~success_desc_bool_mask
+        failed_obj_bool_mask = ~success_obj_values_bool_mask
+
+        # Computing output data for successful solutions
         success_smiles = np.array(smiles_list)[success_bool_mask]
-        success_desc_values = dataset_X_filtered[np.isin(success_desc_int_mask, success_int_mask)]
-        success_obj_values = obj_values_filtered[np.isin(success_obj_int_mask, success_int_mask)]
-        success_all_scores = all_scores_filtered[np.isin(success_obj_int_mask, success_int_mask)].reshape(
-            (len(success_smiles), objective.get_all_scores_number()))
-        success_obj_computation_times = obj_computation_times_filtered[np.isin(success_obj_int_mask, success_int_mask)]
+        success_desc_values = dataset_X[success_bool_mask]
+        success_obj_values = obj_values[success_bool_mask]
+        success_all_scores = np.array(all_scores)[success_bool_mask].reshape((len(success_smiles),
+                                                                              objective.get_all_scores_number()))
+        success_obj_computation_times = np.array(obj_computation_times)[success_bool_mask]
 
         # Insuring scores are float
         success_all_scores = success_all_scores.astype(np.float)
         success_obj_values = success_obj_values.astype(np.float)
 
-        # Computing mask of SMILES with at least one failure
-        failed_bool_mask = np.logical_not(success_bool_mask)
-
-        # Computing list of failing SMILES
+        # Computing output data for failed solutions
         failed_smiles = np.array(smiles_list)[failed_bool_mask]
 
+        # Computing surrogate prediction and uncertainty for successful solutions
+        try:
+            success_prediction, success_uncertainty = compute_surrogate_predictions(self.surrogate, success_desc_values)
+        except ValueError as e:
+            # No solution to be predicted
+            success_prediction, success_uncertainty = np.full((len(success_smiles), ), np.nan), \
+                                                      np.full((len(success_smiles)), np.nan)
+
+        # Initialization of surrogate prediction and uncertainty for failed solutions
+        failed_prediction, failed_uncertainty = np.full((len(failed_smiles),), np.nan), np.full((len(failed_smiles),),
+                                                                                                np.nan)
+
+        # Computing the mask of solutions that failed but passed the descriptor computation among failed solutions
+        failed_solutions_passed_desc_among_failed_mask = success_desc_bool_mask[failed_bool_mask]
+
+        # Computing the mask of solutions that failed but passed the descriptor computation among all solutions
+        failed_solutions_passed_desc_among_all_mask = np.logical_and(success_desc_bool_mask, failed_bool_mask)
+
+        # Computing the surrogate prediction and uncertainty for failed solutions that passed the descriptor computation
+        try:
+            failed_prediction[failed_solutions_passed_desc_among_failed_mask], \
+                failed_uncertainty[failed_solutions_passed_desc_among_failed_mask] = \
+                compute_surrogate_predictions(self.surrogate, dataset_X[failed_solutions_passed_desc_among_all_mask])
+        except ValueError as e:
+            # No solution to be predicted
+            pass
+
         return success_smiles, success_desc_values, success_obj_values, success_all_scores, \
-               success_obj_computation_times, success_int_mask, failed_smiles, failed_bool_mask, failed_desc_bool_mask, \
-               failed_obj_bool_mask, desc_comput_time, obj_comput_time
+            success_obj_computation_times, success_int_mask, failed_smiles, failed_bool_mask, failed_desc_bool_mask,\
+            failed_obj_bool_mask, desc_comput_time, obj_comput_time, success_prediction, success_uncertainty, \
+            failed_prediction, failed_uncertainty
 
     def initialize_stop_criterion(self):
         """
@@ -381,9 +410,10 @@ class BBOAlg:
 
         # Computing descriptors and objective function values of initial dataset
         success_dict["smiles"], success_dict["X"], success_dict["obj_value"], success_all_scores, \
-        success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask, \
-        failed_desc_bool_mask, failed_obj_bool_mask, time_desc, time_obj = \
-            self.compute_descriptors_objective_values(input_smiles, objective)
+            success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask, \
+            failed_desc_bool_mask, failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
+            failed_prediction, failed_uncertainty = \
+            self.compute_descriptors_surrogate_objective_values(input_smiles, objective)
 
         # Recording the other scores values
         for i, key in enumerate(objective.keys()):
@@ -405,7 +435,11 @@ class BBOAlg:
         if "n_obj_calls" in success_dict:
             success_dict["n_obj_calls"] = np.full((success_dict["smiles"].shape[0],), objective.calls_count)
 
-        # Saving failed data SMILES, steps and calls
+        # Setting surrogate prediction and uncertainty
+        if "surrogate_pred" in success_dict:
+            success_dict["surrogate_pred"], success_dict["surrogate_std"] = success_prediction, success_uncertainty
+
+        # Saving failed data SMILES, steps, calls and surrogate prediction and uncertainty
         failed_dict["smiles"] = failed_smiles_list
 
         if "step" in failed_dict:
@@ -414,6 +448,9 @@ class BBOAlg:
         if "n_obj_calls" in failed_dict:
             failed_dict["n_obj_calls"] = np.full((failed_dict["smiles"].shape[0],),
                                                  objective.calls_count)
+
+        if "surrogate_pred" in failed_dict:
+            failed_dict["surrogate_pred"], failed_dict["surrogate_std"] = failed_prediction, failed_uncertainty
 
         # Saving the failure cause
         failed_dict["failed_descriptors"] = failed_desc_bool_mask[failed_bool_mask]
@@ -446,6 +483,7 @@ class BBOAlg:
                 success_dict["merit_" + key] = np.concatenate([success_dict[key],
                                                                np.full((failed_dict["smiles"].shape[0],), np.nan)])
 
+            # Setting step, success, obj calls, surrogate prediction and uncertainty for failed solutions
             if "step" in success_dict:
                 success_dict["step"] = np.concatenate([success_dict["step"],
                                                        np.zeros((failed_dict["smiles"].shape[0],), dtype=np.int)])
@@ -456,6 +494,12 @@ class BBOAlg:
                 success_dict["n_obj_calls"] = np.concatenate(
                     [success_dict["n_obj_calls"], np.full((failed_dict["smiles"].shape[0],),
                                                           objective.calls_count)])
+
+            # Setting surrogate prediction and uncertainty
+            if "surrogate_pred" in success_dict:
+                success_dict["surrogate_pred"], success_dict["surrogate_std"] = \
+                    np.concatenate([success_dict["surrogate_pred"], failed_prediction]), \
+                    np.concatenate([success_dict["surrogate_std"], failed_uncertainty])
 
     def initialize_data(self):
         """
@@ -751,9 +795,10 @@ class BBOAlg:
 
                 # Computing descriptors and objective function values of new solutions
                 success_smiles, success_X, success_y, success_all_scores, success_obj_computation_times, \
-                success_int_mask, failed_smiles_list, failed_bool_mask, failed_desc_bool_mask, failed_obj_bool_mask, \
-                time_desc, time_obj = \
-                    self.compute_descriptors_objective_values(results_smiles, objective=self.objective)
+                    success_int_mask, failed_smiles_list, failed_bool_mask, failed_desc_bool_mask, \
+                    failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
+                    failed_prediction, failed_uncertainty = \
+                    self.compute_descriptors_surrogate_objective_values(results_smiles, objective=self.objective)
 
                 time_comput_desc_obj = time.time() - tstart_desc_obj_comput
 
@@ -787,8 +832,14 @@ class BBOAlg:
                     self.dataset_dict["merit_value"], np.array(results_merit_scores)[success_int_mask]])
                 for i, key in enumerate(self.merit_function.keys()):
                     self.dataset_dict["merit_" + key] = np.concatenate([
-                        self.dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[success_int_mask].T[i].reshape(-1,)]
+                        self.dataset_dict["merit_" + key],
+                        np.array(results_merit_sub_scores)[success_int_mask].T[i].reshape(-1, )]
                     )
+
+                # Updating prediction attributes for successful solutions
+                self.dataset_dict["surrogate_pred"], self.dataset_dict["surrogate_std"] = \
+                    np.concatenate([self.dataset_dict["surrogate_pred"], success_prediction]), \
+                    np.concatenate([self.dataset_dict["surrogate_std"], success_uncertainty])
 
                 # Updating attributes for failed solutions
                 self.failed_dataset_dict["smiles"] = np.concatenate([self.failed_dataset_dict["smiles"],
@@ -807,8 +858,14 @@ class BBOAlg:
                     self.failed_dataset_dict["merit_value"], np.array(results_merit_scores)[failed_bool_mask]])
                 for i, key in enumerate(self.merit_function.keys()):
                     self.failed_dataset_dict["merit_" + key] = np.concatenate([
-                        self.failed_dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1,)
+                        self.failed_dataset_dict["merit_" + key],
+                        np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1, )
                     ])
+
+                # Updating prediction attributes for failed solutions
+                self.failed_dataset_dict["surrogate_pred"], self.failed_dataset_dict["surrogate_std"] = \
+                    np.concatenate([self.failed_dataset_dict["surrogate_pred"], failed_prediction]), \
+                    np.concatenate([self.failed_dataset_dict["surrogate_std"], failed_uncertainty])
 
                 # If self.score_assigned_to_failed_solutions is not None, failing solutions are also inserted in the
                 # success dataset with the given objective value
@@ -835,7 +892,8 @@ class BBOAlg:
                         self.dataset_dict["merit_value"], np.array(results_merit_scores)[failed_bool_mask]])
                     for i, key in enumerate(self.merit_function.keys()):
                         self.dataset_dict["merit_" + key] = np.concatenate([
-                            self.dataset_dict["merit_" + key], np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1,)
+                            self.dataset_dict["merit_" + key],
+                            np.array(results_merit_sub_scores)[failed_bool_mask].T[i].reshape(-1, )
                         ])
 
                     self.dataset_dict["step"] = np.concatenate([self.dataset_dict["step"],
@@ -846,6 +904,11 @@ class BBOAlg:
 
                     self.dataset_dict["n_obj_calls"] = np.concatenate([self.dataset_dict["n_obj_calls"],
                                                                        failed_obj_calls])
+
+                    # Updating prediction attributes
+                    self.dataset_dict["surrogate_pred"], self.dataset_dict["surrogate_std"] = \
+                        np.concatenate([self.dataset_dict["surrogate_pred"], failed_prediction]), \
+                        np.concatenate([self.dataset_dict["surrogate_std"], failed_uncertainty])
 
                 time_step = time.time() - tstart_step
 

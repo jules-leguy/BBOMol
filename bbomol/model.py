@@ -10,6 +10,17 @@ from sklearn.gaussian_process.kernels import WhiteKernel
 from sklearn.model_selection import GridSearchCV
 
 
+def compute_surrogate_predictions(surrogate_model, X):
+    """
+    Using the given surrogate model to predict the given input. Returning both prediction and uncertainty vectors
+    :param surrogate_model: bbomol.model.SurrogateModel instance
+    :param X: Descriptors for given input solutions
+    :return: (prediction vector, uncertainty vector)
+    """
+
+    return surrogate_model.predict(X), surrogate_model.uncertainty(X)
+
+
 class SurrogateModel(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     def uncertainty(self, X, smiles_list=None):
@@ -84,7 +95,7 @@ class GPRSurrogateModelWrapper(SurrogateModel):
         if np.array_equal(X, self.last_X_predicted):
             return self.std_last_X_predicted
         else:
-            _, std = self.model.predict(X, return_std=True)
+            _, std = self.get_model_instance().predict(X, return_std=True)
             return std
 
     def get_model_instance(self):
