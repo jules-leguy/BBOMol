@@ -133,7 +133,7 @@ def _CoulombMatrixDesc_compute_from_ASE(cm_builder, ase_mol, smiles, n_atoms_max
         cm_desc = cm_builder.create(ase_mol).reshape((-1,))
         success = True
 
-    except Exception as e:
+    except Exception:
         print("CM failing for " + smiles)
         cm_desc = np.zeros((cm_builder.get_number_of_features()))
         success = False
@@ -201,7 +201,7 @@ def _SOAPDesc_compute_from_ASE(soap_builder, ase_mol, smiles, rcut, nmax, lmax, 
         soap_desc = soap_builder.create(ase_mol).reshape((-1,))
         success = True
 
-    except Exception as e:
+    except Exception:
         print("SOAP failing for " + smiles)
         soap_desc = np.zeros((soap_builder.get_number_of_features()))
         success = False
@@ -301,7 +301,7 @@ def _MBTRDesc_compute_from_ASE(mbtr_builder, ase_mol, smiles, species, atomic_nu
         cm_desc = mbtr_builder.create(ase_mol).reshape((-1,))
         success = True
 
-    except Exception as e:
+    except Exception:
         print("MBTR failing for " + smiles)
         cm_desc = np.zeros((mbtr_builder.get_number_of_features()))
         success = False

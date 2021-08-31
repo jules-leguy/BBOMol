@@ -122,7 +122,7 @@ class ExpectedImprovementMerit(Merit):
         :param xi: xi exploration parameter
         :param noise_based: whether the maximum known value is computed as the max of predictions (noise case) or as
         the max of dataset (genuine expected improvement).
-        :param init_pop_zero_merit: whether the EI value is set to zero for individuals of initial population to gain
+        :param init_pop_zero_EI: whether the EI value is set to zero for individuals of initial population to gain
         computation time for solutions of the dataset
         See http://krasserm.github.io/2018/03/21/bayesian-optimization/ and
         https://arxiv.org/pdf/1012.2599.pdf and https://arxiv.org/abs/1012.2599
@@ -163,8 +163,7 @@ class ExpectedImprovementMerit(Merit):
             self.y_max = np.max(dataset_y)
 
     def compute_merit_value(self, X):
-        '''
-
+        """
         From : http://krasserm.github.io/2018/03/21/bayesian-optimization/
 
         Computing the EI value of X that represents the descriptors of a single point.
@@ -172,7 +171,7 @@ class ExpectedImprovementMerit(Merit):
 
         Returns:
             Expected improvement value of the point X.
-        '''
+        """
 
         # Predicting value
         mu = self.surrogate.predict(X)

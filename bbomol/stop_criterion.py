@@ -107,4 +107,3 @@ class KObjFunCallsFunctionStopCriterion(StopCriterion):
                             "Max number of calls to the objective function reached")
 
         return test
-

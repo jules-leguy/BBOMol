@@ -1,15 +1,9 @@
 import concurrent
 import time
-from abc import abstractmethod
 from concurrent.futures.process import ProcessPoolExecutor
-
 import numpy as np
 from evomol.molgraphops.molgraph import MolGraph
-from joblib import Parallel, delayed, Memory
-from rdkit.Chem.QED import qed
-from rdkit.Chem.rdMolDescriptors import GetMorganFingerprint
 from rdkit.Chem.rdmolfiles import MolFromSmiles
-from rdkit.DataStructs.cDataStructs import TanimotoSimilarity
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
@@ -106,7 +100,7 @@ class EvoMolEvaluationStrategyWrapper(TransformerMixin, BaseEstimator):
                 all_scores_list.append(other_scores)
                 successes.append(True)
                 computation_times.append(computation_time)
-            except Exception as e:
+            except Exception:
                 scores.append(None)
                 all_scores_list.append(np.full((len(self.keys()),), None))
                 successes.append(False)
@@ -117,111 +111,3 @@ class EvoMolEvaluationStrategyWrapper(TransformerMixin, BaseEstimator):
         successes = np.array(successes).reshape(-1, )
 
         return scores, all_scores_list, successes, computation_times
-
-
-class Objective(TransformerMixin, BaseEstimator):
-    """
-    Base class of objective estimators
-    """
-
-    def __init__(self, cache_location, n_jobs=1):
-        self.cache_location = cache_location
-        self.calls_count = 0
-        self.n_jobs = n_jobs
-        self.do_count_calls = True
-
-    def fit(self, X, y=None):
-        return self
-
-    def disable_calls_count(self):
-        """
-        Method disabling the count of calls to the objective function. Used to ignore the computation of training or
-        testing datasets in the total count
-        :return:
-        """
-        self.do_count_calls = False
-
-    def enable_calls_count(self):
-        """
-        Enabling the count of calls to the objective function.
-        :return:
-        """
-        self.do_count_calls = True
-
-    def transform(self, X):
-
-        # Performing a parallel computation
-        results_parallel = Parallel(n_jobs=self.n_jobs)(
-            delayed(self.transform_row)(X[i]) for i in range(len(X)))
-
-        values = []
-        successes = []
-
-        # Retrieving all parallel results
-        for value, success in results_parallel:
-            # Saving descriptor
-            values.append(value)
-            successes.append(success)
-
-        # Reshaping arrays
-        values = np.array(values).reshape(-1, )
-        successes = np.array(successes).reshape(-1, )
-
-        # Updating the calls count
-        if self.do_count_calls:
-            self.calls_count += len(X)
-
-        return values, successes
-
-    @abstractmethod
-    def transform_row(self, smi):
-        pass
-
-
-class QEDObjective(Objective):
-
-    def transform_row(self, smi):
-        super().transform_row(smi)
-        try:
-            return qed(MolFromSmiles(smi)), True
-        except Exception as e:
-            return None, False
-
-
-def _get_fingerprint(target_fp):
-    """
-    Computing the fingerprint of
-    :param target_fp:
-    :return:
-    """
-    GetMorganFingerprint(MolFromSmiles(target_fp), 2)
-
-
-def _ECFP4_similarity(target_smi, target_fp, to_evaluate_smi):
-    to_evaluate_fp = GetMorganFingerprint(MolFromSmiles(to_evaluate_smi), 2)
-
-    return TanimotoSimilarity(target_fp, to_evaluate_fp)
-
-
-class ECFP4SimilarityObjective(Objective):
-    """
-    Evaluating the ECFP4 Tanimoto similarity between a given molecule and a target molecule
-    """
-
-    def __init__(self, cache_location, target_smi, n_jobs=1):
-        super().__init__(cache_location, n_jobs)
-
-        self.target_smi = target_smi
-        self.target_fp = GetMorganFingerprint(MolFromSmiles(target_smi), 2)
-
-        # Setting up the cache object
-        self.cache_sim_fun = Memory(location=self.cache_location,
-                                    verbose=0).cache(_ECFP4_similarity, ignore=["target_fp"])
-
-    def transform_row(self, smi):
-        super(ECFP4SimilarityObjective, self).transform_row(smi)
-
-        try:
-            return self.cache_sim_fun(self.target_smi, self.target_fp, smi), True
-        except Exception as e:
-            return None, False

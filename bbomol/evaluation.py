@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def compute_best_so_far(obj_calls, obj_values, max_obj_calls, problem_type="max"):
     """
     Computing the vector of best solution found indexed on a normalized objective calls vector ranging from 1 to a given
@@ -10,6 +11,8 @@ def compute_best_so_far(obj_calls, obj_values, max_obj_calls, problem_type="max"
     :param problem_type: whether the problem is a maximization problem ("max") or minimization problem ("min")
     :return: normalized objective calls vector (from 1 to max_obj_calls), corresponding best found objective value
     """
+
+    curr_best = None
 
     # Creating the normalized objective calls vector
     norm_obj_calls = np.arange(1, max_obj_calls + 1)
@@ -46,9 +49,9 @@ def compute_best_so_far(obj_calls, obj_values, max_obj_calls, problem_type="max"
 def compute_best_so_far_matrix(obj_calls_list, obj_values_list, max_obj_calls, problem_type="max"):
     """
     Computing the matrix of best-so-far vectors for the given runs.
-    :param obj_calls: list of vectors of number of calls to the objective function (matching the sizes of the obj_value
-    parameter)
-    :param obj_values: list of vectors of objective values (matching the sizes of the obj_calls parameter)
+    :param obj_calls_list: list of vectors of number of calls to the objective function (matching the sizes of the
+    obj_value_list parameter)
+    :param obj_values_list: list of vectors of objective values (matching the sizes of the obj_calls_list parameter)
     :param max_obj_calls: last value of the returned normalized objective calls vector (first value is 1)
     :param problem_type: whether the problem is a maximization problem ("max") or minimization problem ("min")
     :return:
@@ -87,13 +90,15 @@ def compute_ecdf(obj_calls_list, obj_values_list, targets, problem_type="max"):
 
     [1] Nikolaus Hansen et al., “COCO: A Platform for Comparing Continuous Optimizers in a Black-Box Setting,”
     Optimization Methods and Software 36, no.1 (January 2, 2021): 114–44, https://doi.org/10.1080/10556788.2020.1808977.
-    :param obj_calls_list: list of vectors of number of calls to the objective function (matching the sizes of the obj_value
-    parameter)
+    :param obj_calls_list: list of vectors of number of calls to the objective function (matching the sizes of the
+    obj_value_list parameter)
     :param obj_values_list: list of vectors of objective values (matching the sizes of the obj_calls parameter)
     :param targets: list of targets
     :param problem_type: whether the problem is a maximization problem ("max") or minimization problem ("min")
     :return: x values (number of calls to the objective function), y values (ECDF : proportion of satisfied targets)
     """
+
+    success_targets_matrix = None
 
     # Computing the number of runs
     n_runs = len(obj_calls_list)
@@ -164,7 +169,6 @@ def compute_timestamps_ecdf(timestamps_list, obj_values_list, targets):
 
 
 def compute_ERT_timestamps(timestamps_list, obj_values_list, targets, effective_last_timestamp_list):
-
     n_runs = len(timestamps_list)
 
     timestamps = timestamps_list[0]
@@ -218,9 +222,6 @@ def compute_ERT_timestamps(timestamps_list, obj_values_list, targets, effective_
     return ERT_vect
 
 
-
-
-
 def compute_ERT(obj_calls_list, obj_values_list, targets, problem_type="max"):
     """
     Computing the ERT (estimated expected run time) values for the given targets.
@@ -238,6 +239,8 @@ def compute_ERT(obj_calls_list, obj_values_list, targets, problem_type="max"):
     :param problem_type: whether it is a maximization ("max") or minimization ("min") problem
     :return: an array of same size as the target parameter containing the ERT values
     """
+
+    success_targets_matrix = None
 
     # Initialization of the result vector
     ERT_vect = np.zeros((len(targets),))

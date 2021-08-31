@@ -1,5 +1,6 @@
 from ase import Atoms
 
+
 def convert_rdkit_mol_to_symbols_positions(mol):
     """
     Converting a RDKit molecule object to tuple (list of symbols, list of positions)

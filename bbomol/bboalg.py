@@ -120,7 +120,6 @@ def run_evomol_merit_optimization(merit_function, results_path, evomol_parameter
     :param results_path: path in which results will be stored
     :param evomol_parameters: parameters to be given to EvoMol for optimization. Only the "action_space_parameters"
     and "optimization_parameters" attributes are considered
-    :param n_best_evomol_retrieved: number of (best) solutions to be selected
     :param evomol_init_pop_strategy: strategy to select solutions from the dataset to be part of the initial population
     of EvoMol (see the compute_evomol_init_pop function).
     :param dataset_smiles: list of SMILES of the dataset
@@ -176,8 +175,8 @@ class BBOAlg:
         :param merit_function: bbo.merit.Merit instance to compute the values of merit function
         :param surrogate: bbo.model.SurrogateModel instance
         :param stop_criterion: bbo.stop_criterion.StopCriterion instance
-        :param pipeline: sklearn.pipeline.Pipeline instance whose fit and transform methods are applied on the train set,
-        and whose transform method is applied on the tet set at each training and prediction
+        :param pipeline: sklearn.pipeline.Pipeline instance whose fit and transform methods are applied on the train
+        set, and whose transform method is applied on the tet set at each training and prediction
         :param evomol_parameters: parameters to be given to EvoMol for optimization. Only the "action_space_parameters"
         and "optimization_parameters" attributes are considered by BBOAlg.
         :param evomol_init_pop_size: determines the initial population size of EvoMol optimization
@@ -346,7 +345,7 @@ class BBOAlg:
         # Computing surrogate prediction and uncertainty for successful solutions
         try:
             success_prediction, success_uncertainty = compute_surrogate_predictions(self.surrogate, success_desc_values)
-        except ValueError as e:
+        except ValueError:
             # No solution to be predicted
             success_prediction, success_uncertainty = np.full((len(success_smiles), ), np.nan), \
                                                       np.full((len(success_smiles)), np.nan)
@@ -366,7 +365,7 @@ class BBOAlg:
             failed_prediction[failed_solutions_passed_desc_among_failed_mask], \
                 failed_uncertainty[failed_solutions_passed_desc_among_failed_mask] = \
                 compute_surrogate_predictions(self.surrogate, dataset_X[failed_solutions_passed_desc_among_all_mask])
-        except ValueError as e:
+        except ValueError:
             # No solution to be predicted
             pass
 
@@ -666,7 +665,7 @@ class BBOAlg:
         :param alg_total_time: total time since the beginning of the algorithm
         :param min_desc_row_size: minimum possible value of descriptor size
         :param alpha_gpr: alpha value of the GPR kernel (if defined)
-        :param whitek: value of the WhiteKernel of the GPR kernel (if defined)
+        :param whitek_gpr: value of the WhiteKernel of the GPR kernel (if defined)
         :return:
         """
 
@@ -698,6 +697,8 @@ class BBOAlg:
         """
 
         alg_start_time = time.time()
+
+        saved_last_step = None
 
         # Computing descriptors and objective values for datasets
         self.initialize_data()
@@ -768,7 +769,7 @@ class BBOAlg:
                         evomol_init_pop_strategy=self.evomol_init_pop_strategy,
                         dataset_smiles=self.dataset_dict["smiles"],
                         dataset_y=self.dataset_dict["obj_value"], evomol_init_pop_size=self.evomol_init_pop_size
-                    ) for i in range(self.n_evomol_runs))
+                    ) for _ in range(self.n_evomol_runs))
 
                 time_optim = time.time() - tstart_optim
 
@@ -937,7 +938,7 @@ class BBOAlg:
 
                 print("step over")
 
-        except InterruptedError as e:
+        except InterruptedError:
             print("Stopping : interrupted by user")
         except Exception as e:
             with open(join(self.results_path, "error.txt"), "w") as f:

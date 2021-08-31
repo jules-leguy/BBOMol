@@ -7,7 +7,6 @@ import numpy as np
 
 
 def convert_timestamps_best_to_homogeneous_mapping(timestamps_list, best_scores_list, max_time=1e6):
-
     timestamps_arr = np.array(timestamps_list)
     best_scores_arr = np.array(best_scores_list)
 
@@ -72,14 +71,15 @@ def extract_time_best_BBO(bbo_exp_root, max_time=1e6):
             timestamps_list.append(step_to_time[step])
             best_scores_list.append(curr_max)
 
-        homogeneous_timestamps, best_score_homogeneous_timestamps = convert_timestamps_best_to_homogeneous_mapping(timestamps_list, best_scores_list, max_time=max_time)
+        homogeneous_timestamps, best_score_homogeneous_timestamps = \
+            convert_timestamps_best_to_homogeneous_mapping(timestamps_list, best_scores_list, max_time=max_time)
         return {
             "timestamps": homogeneous_timestamps,
             "best_scores_timestamps": best_score_homogeneous_timestamps,
             "effective_last_timestamp": timestamps_list[-1]
         }
 
-    except KeyError as e:
+    except KeyError:
         return {
             "timestamps": [],
             "best_scores_timestamps": [],
@@ -105,7 +105,8 @@ def extract_time_best_EvoMol(evomol_exp_root, max_time=1e6):
         timestamps_list.append(timestamp)
         best_scores_list.append(steps_df["total_max"][i])
 
-    homogeneous_timestamps, best_score_homogeneous_timestamps = convert_timestamps_best_to_homogeneous_mapping(timestamps_list, best_scores_list, max_time=max_time)
+    homogeneous_timestamps, best_score_homogeneous_timestamps = \
+        convert_timestamps_best_to_homogeneous_mapping(timestamps_list, best_scores_list, max_time=max_time)
 
     return {
         "timestamps": homogeneous_timestamps,
@@ -117,7 +118,7 @@ def extract_time_best_EvoMol(evomol_exp_root, max_time=1e6):
 def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
     """
     Extracting the data contained in a BBO dataset.csv file.
-    :param dataset_path: path to the dataset.csv file
+    :param bbo_exp_root: path to directory that contains the dataset.csv file
     :param include_dataset_init_step: whether to include DOE SMILES (SMILES at step 0)
     :return:
     """
@@ -198,7 +199,7 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                     additional_data_dict_failed_dataset = {}
                     for j in range(5, row_size):
                         row_idx_to_key[j] = row[j]
-                        additional_data_dict_failed_dataset["dataset_failed_"+row_idx_to_key[j]] = []
+                        additional_data_dict_failed_dataset["dataset_failed_" + row_idx_to_key[j]] = []
 
                 if i > 0:
 
@@ -215,7 +216,7 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
 
                         # Extracting data in additional columns
                         for j in range(5, row_size):
-                            additional_data_dict_failed_dataset["dataset_failed_"+row_idx_to_key[j]].append(row[j])
+                            additional_data_dict_failed_dataset["dataset_failed_" + row_idx_to_key[j]].append(row[j])
 
     output_dict = {
         "dataset_success_step": success_dataset_introduction_step,
@@ -233,6 +234,7 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
     output_dict.update(additional_data_dict_failed_dataset)
 
     return output_dict
+
 
 def extract_BBO_test_MAE(bbo_exp_root):
     """
@@ -317,10 +319,11 @@ def extract_BBO_experiment_data(bbo_exp_root, include_dataset_init_step=False):
 def extract_multiple_BBO_experiments_data(bbo_multiple_data_root, experiments_folder_names,
                                           include_dataset_init_step=False):
     """
-    Extracting the data of multiple experiments. All the experiments must be as different folders in the given root path.
-    Merging the results of the call to extract_experiment_data function. The keys are the same, but the values are a
-    list of corresponding values extracted from the distinct experiments.
-    :param bbo_multiple_data_root:
+    Extracting the data of multiple experiments. All the experiments must be as different folders in the given root
+    path. Merging the results of the call to extract_experiment_data function. The keys are the same, but the values are
+    a list of corresponding values extracted from the distinct experiments.
+    :param bbo_multiple_data_root: path to the directory that contains all experiments
+    :param experiments_folder_names: list of names of the experiment folders in bbo_multiple_data_root
     :param include_dataset_init_step:
     :return:
     """
