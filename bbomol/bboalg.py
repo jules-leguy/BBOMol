@@ -161,8 +161,8 @@ class BBOAlg:
     def __init__(self, init_dataset_smiles, descriptor, objective, merit_function, surrogate, stop_criterion,
                  evomol_parameters, evomol_init_pop_size, n_evomol_runs, n_best_evomol_retrieved,
                  evomol_init_pop_strategy, objective_init_pop=None, score_assigned_to_failed_solutions=None,
-                 results_path="BBO_results", n_jobs=1, pre_dispatch='2 * n_jobs', batch_size='auto',
-                 save_surrogate_model=False, period_compute_test_predictions=50, period_save=50,
+                 results_path="BBO_results", n_jobs_merit_optim=1, pre_dispatch='2 * n_jobs', batch_size='auto',
+                 save_surrogate_model=False, period_compute_test_predictions=float("inf"), period_save=1,
                  save_pred_test_values=False, test_dataset_smiles_dict=None, test_objectives_dict=None, pipeline=None):
         """
         Main class performing BBO optimization.
@@ -187,11 +187,11 @@ class BBOAlg:
         molecule only. "best" : best objective values from dataset. "best_weighted": random selection from dataset
         weighted by objective function value. "random": uniform random selection from dataset.
         :param objective_init_pop: bbo.objective.EvoMolEvaluationStrategyWrapper wrapping an EvoMol EvaluationStrategy
-        instance to be used on initial population. If not, set as objective instance
+        instance to be used on initial population. If not, set as objective instance the objective parameter
         :param score_assigned_to_failed_solutions: if None then default behaviour : solutions which fail the descriptor
         of objective are discarded. If not None, they are kept and assigned the given value as objective value.
         :param results_path: path in which results of the BBO optimization will be stored
-        :param n_jobs: number of jobs to be used for parallel computations
+        :param n_jobs_merit_optim: number of jobs to be used for merit function parallel optimization
         :param save_surrogate_model: whether the surrogate model should be saved along with results data
         :param period_compute_test_predictions: period in steps of computation and recording of predictions on the
         test dataset
@@ -220,7 +220,7 @@ class BBOAlg:
         self.evomol_init_pop_strategy = evomol_init_pop_strategy
 
         self.results_path = results_path
-        self.n_jobs = n_jobs
+        self.n_jobs_merit_optim = n_jobs_merit_optim
         self.pre_dispatch = pre_dispatch
         self.batch_size = batch_size
         self.save_surrogate_model = save_surrogate_model
@@ -761,7 +761,7 @@ class BBOAlg:
                 print("Starting EvoMol optimizations")
 
                 # Performing EvoMol optimizations
-                evomol_instances = Parallel(n_jobs=self.n_jobs, pre_dispatch=self.pre_dispatch,
+                evomol_instances = Parallel(n_jobs=self.n_jobs_merit_optim, pre_dispatch=self.pre_dispatch,
                                             batch_size=self.batch_size)(
                     delayed(run_evomol_merit_optimization)(
                         merit_function=self.merit_function, results_path=self.results_path,

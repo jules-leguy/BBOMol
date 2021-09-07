@@ -8,5 +8,4 @@ setup(name='BBOMol',
       author_email='jules.leguy@univ-angers.fr',
       license='LGPL',
       packages=find_packages(),
-      zip_safe=False, install_requires=['numpy', 'joblib', 'scikit-learn', 'dscribe', 'rdkit', 'ase', 'scipy',
-                                        'pandas'])
+      zip_safe=False)

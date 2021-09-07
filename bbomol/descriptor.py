@@ -194,7 +194,7 @@ class CoulombMatrixDesc(Descriptor):
         return cm_desc, ase_success and cm_success
 
 
-def _SOAPDesc_compute_from_ASE(soap_builder, ase_mol, smiles, rcut, nmax, lmax, species, average, n_max_atoms,
+def _SOAPDesc_compute_from_ASE(soap_builder, ase_mol, smiles, rcut, nmax, lmax, species, average, n_atoms_max,
                                geom_function_name):
     try:
 
@@ -212,7 +212,7 @@ def _SOAPDesc_compute_from_ASE(soap_builder, ase_mol, smiles, rcut, nmax, lmax, 
 class SOAPDesc(Descriptor):
 
     def __init__(self, cache_location=None, rcut=6.0, nmax=8, lmax=6, species="default", average="inner", n_jobs=1,
-                 batch_size='auto', pre_dispatch='2 * n_jobs', n_max_atoms=None, MM_program="obabel",
+                 batch_size='auto', pre_dispatch='2 * n_jobs', n_atoms_max=None, MM_program="obabel",
                  MM_program_parameters=None):
         """
         SOAP descriptor
@@ -236,17 +236,17 @@ class SOAPDesc(Descriptor):
         self.rcut = rcut
         self.nmax = nmax
         self.lmax = lmax
-        self.species = species
+        self.species = ["H", "C", "O", "N", "F"] if species == "default" else species
         self.average = average
 
-        if average == "off" and n_max_atoms is None:
-            self.n_max_atoms = 120
+        if average == "off" and n_atoms_max is None:
+            self.n_atoms_max = 100
         else:
-            self.n_max_atoms = n_max_atoms
+            self.n_atoms_max = n_atoms_max
 
         # Setting up the SOAP descriptor
         self.soap = SOAP(
-            species=["H", "C", "O", "N", "F", "P", "S", "Cl", "Br"] if self.species == "default" else self.species,
+            species=self.species,
             periodic=False,
             rcut=self.rcut,
             nmax=self.nmax,
@@ -261,7 +261,7 @@ class SOAPDesc(Descriptor):
 
     def get_row_size(self):
         if self.average == "off":
-            return self.soap.get_number_of_features() * self.n_max_atoms
+            return self.soap.get_number_of_features() * self.n_atoms_max
         else:
             return self.soap.get_number_of_features()
 
@@ -280,7 +280,7 @@ class SOAPDesc(Descriptor):
             # Computing descriptor
             soap_desc, soap_success = self.cache_desc_fun(self.soap, ase_mol, smiles, rcut=self.rcut, nmax=self.nmax,
                                                           lmax=self.lmax, species=self.species, average=self.average,
-                                                          n_max_atoms=self.n_max_atoms,
+                                                          n_max_atoms=self.n_atoms_max,
                                                           geom_function_name=self.geometry_function.__name__)
 
             complete_desc[:len(soap_desc)] = soap_desc
@@ -301,8 +301,9 @@ def _MBTRDesc_compute_from_ASE(mbtr_builder, ase_mol, smiles, species, atomic_nu
         cm_desc = mbtr_builder.create(ase_mol).reshape((-1,))
         success = True
 
-    except Exception:
+    except Exception as e:
         print("MBTR failing for " + smiles)
+        print(e)
         cm_desc = np.zeros((mbtr_builder.get_number_of_features()))
         success = False
 
@@ -332,18 +333,17 @@ class MBTRDesc(Descriptor):
         super().__init__(cache_location=cache_location, n_jobs=n_jobs, batch_size=batch_size, pre_dispatch=pre_dispatch,
                          MM_program=MM_program, MM_program_parameters=MM_program_parameters)
 
-        self.species = species
+        self.species = ["H", "C", "O", "N", "F"] if species == "default" else species
         self.atomic_numbers_n = atomic_numbers_n
         self.inverse_distances_n = inverse_distances_n
         self.cosine_angles_n = cosine_angles_n
         self.normalization = "l2_each"
 
         # Computing atomic numbers
-        atomic_numbers = [GetPeriodicTable().GetAtomicNumber(symb) for symb in (
-            ["H", "C", "O", "N", "F", "P", "S", "Cl", "Br"] if self.species == "default" else self.species)]
+        atomic_numbers = [GetPeriodicTable().GetAtomicNumber(symb) for symb in self.species]
 
         self.mbtr = MBTR(
-            species=["H", "C", "O", "N", "F", "P", "S", "Cl", "Br"] if self.species == "default" else self.species,
+            species=self.species,
             k1={
                 "geometry": {"function": "atomic_number"},
                 "grid": {"min": 1, "max": max(atomic_numbers), "n": self.atomic_numbers_n, "sigma": 0.1},
