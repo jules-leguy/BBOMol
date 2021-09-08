@@ -71,8 +71,8 @@ be set with a dictionary containing the following entries.
 ```GaussianProcessRegressor(1.0*RBF(1.0)+WhiteKernel(1.0), normalize_y=True)```)
 * ```"descriptor"```: a dictionary that defines the descriptor to be used to represent the solutions. The ```"type"``` 
 attribute is used to select the descriptor, which can be configured using the following set of attributes.
-  * ```"type"``` : name of the descriptor to be used (**"MBTR"**).
-    * "MBTR" : [many-body tensor representation](https://arxiv.org/abs/1704.06439), using 
+  * ```"type"``` : name of the descriptor to be used.
+    * **"MBTR"** : [many-body tensor representation](https://arxiv.org/abs/1704.06439), using 
   [DScribe](https://singroup.github.io/dscribe/latest/index.html) implementation.
     * "shingles" : boolean or integer vector of [shingles](https://doi.org/10.1186/s13321-018-0321-8).
     * "SOAP" : [smooth overlap of atomic positions](https://doi.org/10.1103/PhysRevB.87.184115), using 
