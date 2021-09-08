@@ -64,7 +64,7 @@ functions evaluating a SMILES and functions combining several properties. See th
 
 ### Surrogate parameters
 
-The ```surrogate_parameters``` attribute describes the parameters of the Gaussian process regression model (Kriging) 
+The ```"surrogate_parameters"``` attribute describes the parameters of the Gaussian process regression model (Kriging) 
 that is used as a surrogate of the objective function. This includes the setting of the molecular descriptor. It can
 be set with a dictionary containing the following entries.
 * ```"GPR_instance"``` : instance of sklearn.gaussian_process.GaussianProcessRegressor (**default :** 
@@ -72,10 +72,10 @@ be set with a dictionary containing the following entries.
 * ```"descriptor"```: a dictionary that defines the descriptor to be used to represent the solutions. The ```"type"``` 
 attribute is used to select the descriptor, which can be configured using the following set of attributes.
   * ```"type"``` : name of the descriptor to be used (**"MBTR"**).
-    * ```"MBTR"``` : [many-body tensor representation](https://arxiv.org/abs/1704.06439), using 
+    * "MBTR" : [many-body tensor representation](https://arxiv.org/abs/1704.06439), using 
   [DScribe](https://singroup.github.io/dscribe/latest/index.html) implementation.
-    * ```"shingles"``` : boolean or integer vector of [shingles](https://doi.org/10.1186/s13321-018-0321-8).
-    * ```"SOAP"``` : [smooth overlap of atomic positions](https://doi.org/10.1103/PhysRevB.87.184115), using 
+    * "shingles" : boolean or integer vector of [shingles](https://doi.org/10.1186/s13321-018-0321-8).
+    * "SOAP" : [smooth overlap of atomic positions](https://doi.org/10.1103/PhysRevB.87.184115), using 
 [DScribe](https://singroup.github.io/dscribe/latest/index.html) implementation.
 
 * *Parameters common to MBTR and SOAP*
@@ -106,11 +106,11 @@ independently ("off").
 The ```"merit_optim_parameters"``` attribute is used to describe the merit function and the parameters of its 
 evolutionary optimization. It can be set with a dictionary containing the following entries.
 
-* ```"merit_type``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), or 
+* ```"merit_type"``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), or 
 the surrogate function directly ("surrogate").
-* ```"merit_EI_xi``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
+* ```"merit_EI_xi"``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
 of the expected improvement (**0.01**). This parameter is only interpreted if ```"merit_type"``` is set to "EI".
-* ```"evomol_parameters``` : dictionary describing the parameters for the evolutionary optimization of the merit 
+* ```"evomol_parameters"``` : dictionary describing the parameters for the evolutionary optimization of the merit 
 function, using the [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) algorithm. See the relevant section in 
 [EvoMol documentation](https://github.com/jules-leguy/EvoMol#search-space). The ```"action_space_parameters"```
 and ```"optimization_parameters"``` attributes can be set here. They respectively define the number of optimization 
@@ -130,7 +130,7 @@ attributes are set automatically by BBOMol. **Default value** :
 * ```"init_pop_size"``` : number of solutions that are drawn from the dataset of known solutions to be inserted in the
 initial population of the evolutionary algorithm, at each optimization phase and for each evolutionary optimization 
 instance (**10**).
-* ```"init_pop_strategy``` : strategy to select the solutions from the dataset of known solutions to be inserted in the
+* ```"init_pop_strategy"``` : strategy to select the solutions from the dataset of known solutions to be inserted in the
 initial population of the evolutionary optimization instances. Available strategies :
   * "methane" : always starting the evolutionary optimization from the methane molecule.
   * "best" : selecting the ```"init_pop_size"``` best solutions according to the objective function.
@@ -175,7 +175,7 @@ containing the following entries.
 parallel (**1**).
 * ```"n_jobs_desc_comput"``` : number of jobs to compute the descriptors in parallel (**1**). This parameter is ignored
 when computing the vector of shingles as it cannot be parallelized.
-* ```n_jobs_obj_comput```: number of jobs to evaluate the selected solutions using the objective function in parallel
+* ```"n_jobs_obj_comput"```: number of jobs to evaluate the selected solutions using the objective function in parallel
 (**1**). In case of DFT evaluation, this is different to the parameter that sets the number of threads to perform DFT 
 optimizations. The latter is set to 1 by default and cannot be accessed for now, except if using an
 evomol.evaluation_dft.OPTEvaluationStrategy instance as objective function.
