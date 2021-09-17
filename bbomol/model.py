@@ -82,7 +82,12 @@ class GPRSurrogateModelWrapper(SurrogateModel):
         if isinstance(self.model, GaussianProcessRegressor):
             y, std = self.model.predict(X, return_std=True)
         elif isinstance(self.model, GridSearchCV):
-            y, std = self.model.best_estimator_.predict(X, return_std=True)
+
+            try:
+                y, std = self.model.best_estimator_.predict(X, return_std=True)
+            except AttributeError:
+                # Happens when the GridSearchCV has not been trained yet
+                y, std = np.full((X.shape[0],), np.nan), np.full((X.shape[0],), np.nan)
 
         self.last_X_predicted = X
         self.std_last_X_predicted = std
