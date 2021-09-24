@@ -22,7 +22,8 @@ def _extract_explicit_IO_parameters(parameters_dict):
         "save_n_steps": input_io_parameters["save_n_steps"] if "save_n_steps" in input_io_parameters else 1,
         "dft_working_dir": input_io_parameters[
             "dft_working_dir"] if "dft_working_dir" in input_io_parameters else "/tmp",
-        "dft_cache_files": input_io_parameters["dft_cache_files"] if "dft_cache_files" in input_io_parameters else []
+        "dft_cache_files": input_io_parameters["dft_cache_files"] if "dft_cache_files" in input_io_parameters else [],
+        "MM_program": input_io_parameters["MM_program"] if "MM_program" in input_io_parameters else "rdkit"
     }
 
     for parameter in input_io_parameters:
@@ -93,8 +94,6 @@ def _extract_explicit_BBO_optim_parameters(parameters_dict):
 def _extract_explicit_descriptor_parameters(descriptor_parameters_dict):
     explicit_descriptor_parameters = {
         "type": descriptor_parameters_dict["type"] if "type" in descriptor_parameters_dict else "MBTR",
-        "MM_program": descriptor_parameters_dict[
-            "MM_program"] if "MM_program" in descriptor_parameters_dict else "rdkit",
         "species": descriptor_parameters_dict["species"] if "species" in descriptor_parameters_dict else ["H", "C", "O",
                                                                                                           "N", "F"],
         "n_atoms_max": descriptor_parameters_dict[
@@ -177,7 +176,8 @@ def _parse_objective_function(obj_fun_explicit, IO_explicit_parameters, merit_op
         parameters_dict={"obj_function": obj_fun_explicit},
         explicit_IO_parameters_dict={
             "dft_working_dir": IO_explicit_parameters["dft_working_dir"],
-            "dft_cache_files": IO_explicit_parameters["dft_cache_files"]
+            "dft_cache_files": IO_explicit_parameters["dft_cache_files"],
+            "dft_MM_program": IO_explicit_parameters["MM_program"]
         },
         # explicit_search_parameters_dict=evomol._extract_explicit_search_parameters(
         #     merit_optim_explicit_parameters["evomol_parameters"])
@@ -198,7 +198,8 @@ def _parse_surrogate(surrogate_explicit_parameters):
     return GPRSurrogateModelWrapper(surrogate_explicit_parameters["GPR_instance"])
 
 
-def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_parameters):
+def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_parameters,
+                      IO_explicit_parameters):
     """
     Building a bbomol.descriptor.Descriptor instance
     :param surrogate_explicit_parameters:
@@ -212,7 +213,7 @@ def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_pa
                         atomic_numbers_n=surrogate_explicit_parameters["descriptor"]["atomic_numbers_n"],
                         inverse_distances_n=surrogate_explicit_parameters["descriptor"]["inverse_distances_n"],
                         cosine_angles_n=surrogate_explicit_parameters["descriptor"]["cosine_angles_n"],
-                        MM_program=surrogate_explicit_parameters["descriptor"]["MM_program"])
+                        MM_program=IO_explicit_parameters["MM_program"])
 
     elif surrogate_explicit_parameters["descriptor"]["type"] == "shingles":
 
@@ -228,7 +229,7 @@ def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_pa
                         species=surrogate_explicit_parameters["descriptor"]["species"],
                         average=surrogate_explicit_parameters["descriptor"]["average"],
                         n_jobs=parallelization_explicit_parameters["n_jobs_desc_comput"],
-                        MM_program=surrogate_explicit_parameters["descriptor"]["MM_program"])
+                        MM_program=IO_explicit_parameters["MM_program"])
 
     return desc
 
@@ -316,7 +317,7 @@ def run_optimization(parameters_dict):
     surrogate = _parse_surrogate(surrogate_explicit_parameters)
 
     # Parsing descriptor
-    desc = _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_parameters)
+    desc = _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_parameters, IO_explicit_parameters)
 
     # Parsing merit function
     merit_function = _parse_merit_function(merit_optim_explicit_parameters, desc, surrogate)

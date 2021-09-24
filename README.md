@@ -78,11 +78,8 @@ attribute is used to select the descriptor, which can be configured using the fo
     * "SOAP" : [smooth overlap of atomic positions](https://doi.org/10.1103/PhysRevB.87.184115), using 
 [DScribe](https://singroup.github.io/dscribe/latest/index.html) implementation.
 
-* *Parameters common to MBTR and SOAP*
+* *Parameter common to MBTR and SOAP*
   * ```"species"```: list of atomic symbols that can be represented (**["H", "C", "O", "N", "F"]**).
-  * ```"MM_program"```: program used to perform MMFF94 molecular mechanics optimization. It can be either 
-[RDKit](https://doi.org/10.1186/s13321-014-0037-3) (**"rdkit"**) or [OpenBabel](https://doi.org/10.1186/1758-2946-3-33)
-("obabel").
 * *Parameters specific to MBTR (see 
 [DScribe documentation](https://singroup.github.io/dscribe/latest/tutorials/descriptors/mbtr.html))*
   * ```"atomic_numbers_n"```, ```"inverse_distances_n"```, ```"cosine_angles_n"```: number of bins to 
@@ -166,6 +163,11 @@ for the experiment (**"BBOMol_optim/**).
 * ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**). 
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
+* ```"MM_program"```: program used to perform MMFF94 molecular mechanics optimization. It can be either 
+[RDKit](https://doi.org/10.1186/s13321-014-0037-3) (**"rdkit"**) or [OpenBabel](https://doi.org/10.1186/1758-2946-3-33)
+("obabel"). The selected program will be used to compute MBTR and SOAP descriptors and the initial geometry of DFT 
+calculations. 
+
 
 ### Parallelization
 
