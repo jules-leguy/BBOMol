@@ -434,3 +434,69 @@ def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experime
                 output_dict[k].append(curr_model_data[k])
 
     return output_dict
+
+
+def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=None, sub_experiment_names=None):
+    """
+    Extracting the results of BBO and EvoMol experiments into a normalized dictionary, that can be interpreted by
+    functions in bbomol.postprocessing.plot.
+    The dictionary describing experiments must associate an experiment name with the path of the corresponding results.
+    It is possible to aggregate results from different runs of the same experiment. In this case, the paths of the
+    directories given to BBO_experiments_dict and EvoMol_experiments_dict must point to a directory that contains the
+    results of all runs for each experiment. Moreover, the names of the run directories must be the same for all
+    experiments and their list must be given to sub_experiment_names.
+    :param BBO_experiments_dict: dictionary that associates the names of BBO experiments with the path of the
+    corresponding results
+    :param sub_experiment_names: if several runs are performed for each experiment, list of the names of the directories
+    that contain individual runs.
+    :param EvoMol_experiments_dict: dictionary that associates the names of the EvoMol experiments with the path of the
+    results (optional)
+    :return: dictionary aggregating all experiments and runs
+    """
+
+    # Initialization of results dictionary
+    results_dict = {}
+
+    # Extracting BBO experiments results
+    for exp_name, path in BBO_experiments_dict.items():
+
+        # Single run
+        if sub_experiment_names is None:
+            curr_exp_result_dict = extract_BBO_experiment_data(path)
+
+            # Transforming the dict so that each key is associated with a list containing a single result (to be
+            # consistent with the multiple runs results).
+            for k in curr_exp_result_dict.keys():
+                curr_exp_result_dict[k] = [curr_exp_result_dict[k]]
+
+        # Multiple runs
+        else:
+            curr_exp_result_dict = extract_multiple_BBO_experiments_data(path, sub_experiment_names)
+
+        # Saving current experiment
+        results_dict[exp_name] = curr_exp_result_dict
+
+    # Extracting EvoMol experiments results (if any)
+    if EvoMol_experiments_dict is not None:
+
+        for exp_name, path in EvoMol_experiments_dict.items():
+
+            # Single run
+            if sub_experiment_names is None:
+                curr_exp_result_dict = extract_evomol_experiment_data(path)
+
+                # Transforming the dict so that each key is associated with a list containing a single result (to be
+                # consistent with the multiple runs results).
+                for k in curr_exp_result_dict.keys():
+                    curr_exp_result_dict[k] = [curr_exp_result_dict[k]]
+
+            # Multiple runs
+            else:
+                curr_exp_result_dict = extract_multiple_evomol_experiments_data(path, sub_experiment_names)
+
+            # Saving current experiment
+            results_dict[exp_name] = curr_exp_result_dict
+
+    return results_dict
+
+

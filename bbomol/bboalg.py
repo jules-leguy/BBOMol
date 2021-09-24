@@ -228,6 +228,18 @@ class BBOAlg:
         self.period_save = period_save
         self.save_pred_test_values = save_pred_test_values
 
+        print("init dataset : " + str(self.init_dataset_smiles))
+        print("descriptor instance : " + str(self.descriptor))
+        print("objective instance : " + str(self.objective))
+        print("merit instance : " + str(self.merit_function))
+        print("surrogate instance : " + str(self.surrogate))
+        print("score assigned to failed solutions : " + str(self.score_assigned_to_failed_solutions))
+        print("EvoMol parameters : " + str(self.evomol_parameters))
+        print("EvoMol init pop size : " + str(self.evomol_init_pop_size))
+        print("n EvoMol runs : " + str(n_evomol_runs))
+        print("n best EvoMol retrieved : " + str(n_best_evomol_retrieved))
+        print("init pop strategy : " + str(evomol_init_pop_strategy))
+
         # Variable representing the current step
         self.curr_step = 0
 

@@ -45,6 +45,8 @@ class Descriptor(TransformerMixin, BaseEstimator, ABC):
 
         self.geometry_function_parameters = geometry_function_parameters
 
+        print("MM program : " + str(MM_program))
+
     def fit(self, X, y=None):
         return self
 
@@ -338,6 +340,11 @@ class MBTRDesc(Descriptor):
         self.inverse_distances_n = inverse_distances_n
         self.cosine_angles_n = cosine_angles_n
         self.normalization = "l2_each"
+
+        print("species MBTR  : " + str(self.species))
+        print("atomic_numbers_n : " + str(self.atomic_numbers_n))
+        print("inverse_distances_n : " + str(self.inverse_distances_n))
+        print("cosine_angles_n : " + str(self.cosine_angles_n))
 
         # Computing atomic numbers
         atomic_numbers = [GetPeriodicTable().GetAtomicNumber(symb) for symb in self.species]
