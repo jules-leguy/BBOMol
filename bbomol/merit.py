@@ -133,6 +133,8 @@ class ExpectedImprovementMerit(Merit):
         self.init_pop_zero_EI = init_pop_zero_EI
 
         print("EI xi : " + str(self.xi))
+        print("noise based : " + str(noise_based))
+        print("init_pop_zero_EI : " + str(init_pop_zero_EI))
 
         self.y_max = None
 

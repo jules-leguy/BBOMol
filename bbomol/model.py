@@ -61,6 +61,9 @@ class GPRSurrogateModelWrapper(SurrogateModel):
         self.last_X_predicted = None
         self.std_last_X_predicted = None
 
+        print("GPR model : " + str(self.model))
+        print("GPR model params : " + str(base_model.get_params()))
+
     def fit(self, X, y=None, training_smiles=None):
 
         # Fix in case of GridsearchCV with the starting population : copying several times the samples in initial step
