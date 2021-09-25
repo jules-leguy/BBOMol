@@ -2,3 +2,5 @@ bbomol/__pycache__
 reproduction_ICTAI2021/.ipynb_checkpoints
 reproduction_ICTAI2021/output
 test/
+test_HOMO_MBTR.py
+test_HOMO_EvoMol.py
