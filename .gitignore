@@ -4,3 +4,4 @@ reproduction_ICTAI2021/output
 test/
 test_HOMO_MBTR.py
 test_HOMO_EvoMol.py
+test_HOMO_plot.py

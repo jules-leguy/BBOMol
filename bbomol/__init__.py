@@ -45,7 +45,7 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
         "evomol_parameters": input_merit_optim_parameters[
             "evomol_parameters"] if "evomol_parameters" in input_merit_optim_parameters else {
                 "optimization_parameters": {
-                    "max_steps": 5,
+                    "max_steps": 10,
                 },
                 "action_space_parameters": {
                     "max_heavy_atoms": 9,
