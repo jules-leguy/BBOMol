@@ -281,7 +281,7 @@ plot_ecdf(
 ```
 
 <p align="center">
-<img src="test/ECDF_calls_Empirical%20cumulative%20distribution%20function%20(ECDF).png" alt="ECDF" width="600"/>
+<img src="test/ECDF_calls_Empirical%20cumulative%20distribution%20function%20(ECDF).png" alt="ECDF" width="500"/>
 </p>
 
 ### Best solution
@@ -306,7 +306,10 @@ plot_best_so_far(
 )
 ```
 
-![](test/best_so_far_both_.png)
+<p align="center">
+<img src="test/best_so_far_both_.png" alt="Best solution" width="500"/>
+</p>
+
 
 ### Expected running time (ERT)
 Displaying the [ERT](https://doi.org/10.1080/10556788.2020.1808977) in number of calls to the objective function using targets in the range [-7, -3] eV with a step size of 1.
@@ -322,7 +325,7 @@ df = display_ert(
 ```
 
 
-<table border="1" class="dataframe">
+<table border="1" class="dataframe" align="center">
   <thead>
     <tr style="text-align: right;">
       <th>Experiment</th>
