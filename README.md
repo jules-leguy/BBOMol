@@ -280,7 +280,9 @@ plot_ecdf(
 )
 ```
 
-![ECDF](test/ECDF_calls_Empirical%20cumulative%20distribution%20function%20(ECDF).png)
+<p align="center">
+<img src="test/ECDF_calls_Empirical%20cumulative%20distribution%20function%20(ECDF).png" alt="ECDF" width="600"/>
+</p>
 
 ### Best solution
 
