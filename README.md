@@ -42,9 +42,6 @@ run_optimization({
         }
     }
 })
-
-
-
 ```
 
 ## Settings
@@ -116,7 +113,7 @@ attributes are set automatically by BBOMol. **Default value** :
   ```
   {
       "optimization_parameters": {
-          "max_steps": 5,
+          "max_steps": 10,
       },
       "action_space_parameters": {
           "max_heavy_atoms": 9,
@@ -181,3 +178,175 @@ when computing the vector of shingles as it cannot be parallelized.
 (**1**). In case of DFT evaluation, this is different to the parameter that sets the number of threads to perform DFT 
 optimizations. The latter is set to 1 by default and cannot be accessed for now, except if using an
 evomol.evaluation_dft.OPTEvaluationStrategy instance as objective function.
+
+## Visualization
+
+### Experiments
+
+Running two HOMO energy maximization experiments. The first one consists in using our BBO framework with the 
+[MBTR](https://arxiv.org/abs/1704.06439) descriptor and the RBF kernel. The second one consists in performing a direct
+evolutionary optimization of the property using [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) (no surrogate model
+is used). Both experiments are performed 5 times and are stopped when they reach 300 calls to the objective function 
+(DFT calculations).
+
+```python
+from bbomol import run_optimization as run_BBO_model
+from evomol import run_model as run_EvoMol_model
+import os
+
+def run_BBO(i):
+    run_BBO_model({
+        "io_parameters":{
+            "results_path": "test/HOMO_BBOMol/" + str(i),
+            "dft_working_dir": os.path.abspath("output/dft_files"),
+        },
+        "obj_function": "homo",
+        "bbo_optim_parameters": {
+            "max_obj_calls": 300
+        },
+    })
+
+def run_EvoMol(i):
+   run_EvoMol_model({
+        "obj_function": "homo",
+        "optimization_parameters": {
+            "max_steps": float("inf"),
+            "max_obj_calls": 300,
+            "pop_max_size": 300,
+        },
+        "io_parameters": {
+            "model_path": "HOMO_EvoMol/" + str(i),
+            "record_all_generated_individuals": True,
+            "dft_MM_program": "rdkit",
+            "dft_working_dir": os.path.abspath("test/dft_files"),
+        },
+        "action_space_parameters": {
+            "atoms": "C,N,O,F",
+            "max_heavy_atoms": 9,
+        }
+    })
+
+for i in range(1, 6):
+  run_BBO(i)
+  run_EvoMol(i)
+```
+
+### Extracting results
+
+Using ```bbomol.postprocessing.postprocessing.load_complete_input_results``` function to extract the results into a
+dictionary that will be interpreted to produce the visualizations.
+
+```python
+from bbomol.postprocessing.postprocessing import load_complete_input_results
+
+results_dict = load_complete_input_results(
+  BBO_experiments_dict={  # Dictionary that maps the path of all BBOMol experiments with a key
+    "BBO MBTR/RBF": "test/HOMO_BBOMol/"
+  },
+  EvoMol_experiments_dict={  # Dictionary that maps the path of all EvoMol experiments with a key
+    "EvoMol": "test/HOMO_EvoMol/" 
+  },
+  sub_experiment_names=[str(i) for i in range(1, 6)]  # Names of the folders that contain the different runs 
+)
+```
+
+### Empirical cumulative distribution functions (ECDF)
+
+Plotting the [ECDF](https://doi.org/10.1080/10556788.2020.1808977) using targets in the range [-10, -2] with a step 
+size of 10<sup>-2</sup>.
+
+```python
+import numpy as np
+from bbomol.postprocessing.plot import plot_ecdf
+
+plot_ecdf(
+
+    # Parameters specific to bbomol.postprocessing.plot.plot_ecdf 
+    ecdf_targets=np.arange(-10, -1, 1e-2),  # Numerical targets
+    xunit="calls",   # The x-axis represents the number of calls to the objective function. The alternative is "time". 
+  
+    # Parameters generic to bbomol.postprocessing.plot.plot* functions
+    results_dict=results_dict,  # Dictionary of results previously extracted 
+    output_dir_path="test/",  # Path to the folder in which the plot will be saved
+    exp_list_plot=["BBO MBTR/RBF", "EvoMol"],  # List of keys in results_dict that will be plotted (if None, all are plotted)
+    plot_title="Empirical cumulative distribution function (ECDF)",  # Setting a title to the plot
+    plot_name=None,  # If a string is given here, it will be inserted in the name of the output png file
+    labels_dict={"BBO MBTR/RBF": "BBO"},  # Renaming the given experiments in the legend
+    classes_dashes=[0, 1],  # Experiments with the same dash class will be plotted using the same linestyle (must match exp_list_plot size and order)
+    classes_markers=None,  # Same as classes_dashes for markers
+    xlim=None, ylim=None,  # Tuples can be given to specify the min/max limits of x and y axis
+    xlabel=None, ylabel=None,  # Strings can be given to customize the labels of x and y axis
+    legend_loc=None,  # Location of the legend (default : "lower right") 
+)
+```
+
+![ECDF](test/ECDF_calls_Empirical%20cumulative%20distribution%20function%20(ECDF).png)
+
+### Best solution
+
+Plotting the best solution found depending on the number of calls to the objective function (DFT calculations). It is 
+possible to represent the mean of the best solution across all runs (```"mean"``` keyword), to represent the min and
+max among the best solution across all runs (```"min_max"``` keyword) or to represent both (```"both"``` keyword).
+
+```python
+from bbomol.postprocessing.plot import plot_best_so_far
+
+plot_best_so_far(
+  
+    # Parameters specific to bbomol.postprocessing.plot.plot_ecdf 
+    metric="both", # Representing both the mean of the best solution across all runs, and the minimum and maximum best solution across all runs. They can be represented independently using "mean" or "min_max".
+    
+    # Parameters generic to bbomol.postprocessing.plot.plot* functions
+    results_dict=results_dict, 
+    output_dir_path="test/",
+    classes_dashes=[0, 1],
+    ylabel="HOMO energy (eV)"
+)
+```
+
+![](test/best_so_far_both_.png)
+
+### Expected running time (ERT)
+Displaying the [ERT](https://doi.org/10.1080/10556788.2020.1808977) in number of calls to the objective function using targets in the range [-7, -3] eV with a step size of 1.
+
+```python
+df = display_ert(
+    results_dict=results_dict,
+    ert_targets=np.arange(-7, -2, 1),  # Numerical targets
+    xunit="calls",  # The ERT represent the expected number of calls to the objective function. The alternative is "time".
+    exp_list_plot=["BBO MBTR/RBF", "EvoMol"],  # List of keys in results_dict that will be plotted (if None, all are plotted)
+    labels_dict={"BBO MBTR/RBF": "BBO"}  # Renaming the given experiments in the legend
+)
+```
+
+
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Experiment</th>
+      <th>-7 eV</th>
+      <th>-6 eV</th>
+      <th>-5 eV</th>
+      <th>-4 eV</th>
+      <th>-3 eV</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BBO</td>
+      <td>18</td>
+      <td>35</td>
+      <td>64</td>
+      <td>175</td>
+      <td>275</td>
+    </tr>
+    <tr>
+      <td>EvoMol</td>
+      <td>2</td>
+      <td>3</td>
+      <td>42</td>
+      <td>196</td>
+      <td>inf</td>
+    </tr>
+  </tbody>
+</table>

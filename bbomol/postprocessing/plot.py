@@ -151,7 +151,7 @@ class PlotFigureTemplate(ABC):
         :param experiment_key:
         :return:
         """
-        return self.labels_dict[experiment_key] if self.labels_dict is not None and self.labels_dict else experiment_key
+        return self.labels_dict[experiment_key] if self.labels_dict is not None and self.labels_dict and experiment_key in self.labels_dict else experiment_key
 
 
 class BestSoFarPlot(PlotFigureTemplate):
@@ -469,3 +469,4 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
     df = pd.DataFrame.from_dict(ERT_dict)
     pd.set_option("precision", 0)
     display(df)
+    return df
