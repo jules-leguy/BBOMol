@@ -1,3 +1,5 @@
+import csv
+
 import evomol
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
@@ -264,8 +266,18 @@ def _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameter
     :return: bbomol.bboalg.BBOAlg instance
     """
 
+    # Extracting the smiles if IO_explicit_parameters["smiles_list_init"] rather than a list
+    if isinstance(IO_explicit_parameters["smiles_list_init"], str):
+        smiles_list = []
+        with open(IO_explicit_parameters["smiles_list_init"], "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                smiles_list.append(row[0])
+    else:
+        smiles_list = IO_explicit_parameters["smiles_list_init"]
+
     return BBOAlg(
-        init_dataset_smiles=IO_explicit_parameters["smiles_list_init"],
+        init_dataset_smiles=smiles_list,
         descriptor=desc,
         objective=objective,
         merit_function=merit_function,

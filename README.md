@@ -149,7 +149,8 @@ score as objective function value for these solutions.
 
 The ```"io_parameters"``` attribute is used to define the input/output parameters. It can be set with a dictionary
 containing the following entries.
-* ```"smiles_list_init"```: list of SMILES in the initial dataset of solutions (**["C"]**).
+* ```"smiles_list_init"```: list of SMILES in the initial dataset of solutions (**["C"]**). It is also possible to give
+the path to a text file that contains one SMILES per line.
 * ```"results_path"``` : path of the directory that will be created by BBOMol and in which all results will be stored
 for the experiment (**"BBOMol_optim/**).
 * ```"save_surrogate_model"``` : whether to save the parameters of the latest surrogate model (**False**).
