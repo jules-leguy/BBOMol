@@ -109,7 +109,8 @@ function, using the [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) algorit
 [EvoMol documentation](https://github.com/jules-leguy/EvoMol#search-space). The ```"action_space_parameters"```
 and ```"optimization_parameters"``` attributes can be set here. They respectively define the number of optimization 
 steps at each merit optimization phase, and the chemical space of the solutions that will be generated. The other
-attributes are set automatically by BBOMol. **Default value** :
+attributes are set automatically by BBOMol. It is also possible to set the ```"io_parameters"``` attribute for specific
+purposes, but some attributes may be overwritten. **Default value** :
   ```
   {
       "optimization_parameters": {

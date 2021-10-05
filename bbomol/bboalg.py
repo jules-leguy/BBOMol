@@ -118,8 +118,9 @@ def run_evomol_merit_optimization(merit_function, results_path, evomol_parameter
     The selected individuals from the resulting population are returned as a SMILES list.
     :param merit_function: bbo.merit.Merit instance (function to be optimized by EvoMol)
     :param results_path: path in which results will be stored
-    :param evomol_parameters: parameters to be given to EvoMol for optimization. Only the "action_space_parameters"
-    and "optimization_parameters" attributes are considered
+    :param evomol_parameters: parameters to be given to EvoMol for optimization. The "action_space_parameters",
+    "optimization_parameters" and "io_parameters" attributes are considered. For the latter, some fields may be
+    overwritten
     :param evomol_init_pop_strategy: strategy to select solutions from the dataset to be part of the initial population
     of EvoMol (see the compute_evomol_init_pop function).
     :param dataset_smiles: list of SMILES of the dataset
@@ -130,17 +131,21 @@ def run_evomol_merit_optimization(merit_function, results_path, evomol_parameter
 
     print("run evomol optimization")
 
+    io_parameters_dict = evomol_parameters["io_parameters"] if "io_parameters" in evomol_parameters else {}
+    io_parameters_dict.update(
+    {
+        "model_path": join(results_path, "EvoMol_optimization"),
+        "smiles_list_init": compute_evomol_init_pop(evomol_init_pop_strategy=evomol_init_pop_strategy,
+                                                    dataset_smiles=dataset_smiles, dataset_y=dataset_y,
+                                                    evomol_init_pop_size=evomol_init_pop_size),
+        "external_tabu_list": dataset_smiles,
+        "save_n_steps": 200,
+        "print_n_steps": 1
+    })
+
     parameters = {
         "obj_function": merit_function,
-        "io_parameters": {
-            "model_path": join(results_path, "EvoMol_optimization"),
-            "smiles_list_init": compute_evomol_init_pop(evomol_init_pop_strategy=evomol_init_pop_strategy,
-                                                        dataset_smiles=dataset_smiles, dataset_y=dataset_y,
-                                                        evomol_init_pop_size=evomol_init_pop_size),
-            "external_tabu_list": dataset_smiles,
-            "save_n_steps": 200,
-            "print_n_steps": 1
-        }
+        "io_parameters": io_parameters_dict
     }
 
     if "action_space_parameters" in evomol_parameters:
