@@ -380,6 +380,15 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
             # Checking if file contains information about the failed solutions
             if i == 0:
                 contains_failed_obj_data = "success_obj_computation" in row
+
+                # Extracting additional columns
+                row_size = len(row)
+                row_idx_to_key = {}
+                additional_data_dict_dataset = {}
+                for j in range(6, row_size):
+                    row_idx_to_key[j] = row[j]
+                    additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]] = []
+
             else:
 
                 # Extracting step value
@@ -403,6 +412,11 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
                     if success_or_failed_key == "success":
                         output_dict["dataset_success_obj_value"].append(float(row[3]))
 
+                        # Extracting data in additional columns
+                        for j in range(6, row_size):
+                            additional_data_dict_dataset[
+                                "dataset_success_" + row_idx_to_key[j]].append(row[j])
+
                     # Data specific to failure
                     if success_or_failed_key == "failed":
                         output_dict["dataset_failed_objective"].append(row[5] == "False")
@@ -410,15 +424,20 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
     # Adding timestamps data
     output_dict.update(extract_time_best_EvoMol(evomol_exp_root))
 
+    # Adding additional scores data
+    output_dict.update(additional_data_dict_dataset)
+
     return output_dict
 
 
-def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experiments_folder_names):
+def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experiments_folder_names,
+                                             include_dataset_init_step=False):
     """
     Extracting the data of multiple EvoMol experiments in a way that is consistent with
     extract_multiple_BBO_experiments_data function.
     :param evomol_multiple_data_root:
     :param experiments_folder_names:
+    :param include_dataset_init_step: whether to include the data relative to the initialization step
     :return:
     """
 
@@ -426,7 +445,8 @@ def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experime
     output_dict = {}
 
     # Initialization of keys based on the results of the first folder
-    keys = extract_evomol_experiment_data(join(evomol_multiple_data_root, experiments_folder_names[0])).keys()
+    keys = extract_evomol_experiment_data(join(evomol_multiple_data_root, experiments_folder_names[0]),
+                                          include_dataset_init_step=include_dataset_init_step).keys()
     for k in keys:
         output_dict[k] = []
 
@@ -435,7 +455,8 @@ def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experime
 
         if exists(join(evomol_multiple_data_root, folder_name)):
 
-            curr_model_data = extract_evomol_experiment_data(join(evomol_multiple_data_root, folder_name))
+            curr_model_data = extract_evomol_experiment_data(join(evomol_multiple_data_root, folder_name),
+                                                             include_dataset_init_step=include_dataset_init_step)
 
             for k in keys:
                 output_dict[k].append(curr_model_data[k])
@@ -471,7 +492,8 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
 
         # Single run
         if sub_experiment_names is None:
-            curr_exp_result_dict = extract_BBO_experiment_data(path)
+            curr_exp_result_dict = extract_BBO_experiment_data(path,
+                                                               include_dataset_init_step=include_dataset_init_step)
 
             # Transforming the dict so that each key is associated with a list containing a single result (to be
             # consistent with the multiple runs results).
@@ -481,7 +503,7 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
         # Multiple runs
         else:
             curr_exp_result_dict = extract_multiple_BBO_experiments_data(path, sub_experiment_names,
-                                                                         include_dataset_init_step)
+                                                                         include_dataset_init_step=include_dataset_init_step)
 
         # Saving current experiment
         results_dict[exp_name] = curr_exp_result_dict
@@ -493,7 +515,7 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
 
             # Single run
             if sub_experiment_names is None:
-                curr_exp_result_dict = extract_evomol_experiment_data(path, include_dataset_init_step)
+                curr_exp_result_dict = extract_evomol_experiment_data(path, include_dataset_init_step=include_dataset_init_step)
 
                 # Transforming the dict so that each key is associated with a list containing a single result (to be
                 # consistent with the multiple runs results).
@@ -502,7 +524,8 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
 
             # Multiple runs
             else:
-                curr_exp_result_dict = extract_multiple_evomol_experiments_data(path, sub_experiment_names)
+                curr_exp_result_dict = extract_multiple_evomol_experiments_data(path, sub_experiment_names,
+                                                                                include_dataset_init_step=include_dataset_init_step)
 
             # Saving current experiment
             results_dict[exp_name] = curr_exp_result_dict
