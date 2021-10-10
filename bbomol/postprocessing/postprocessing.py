@@ -349,10 +349,11 @@ def extract_multiple_BBO_experiments_data(bbo_multiple_data_root, experiments_fo
     return output_dict
 
 
-def extract_evomol_experiment_data(evomol_exp_root):
+def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=False):
     """
     Extracting the data of an EvoMol experiment with the same output as extract_BBO_experiment_data function
-    :param evomol_exp_root:
+    :param evomol_exp_root: path to the results
+    :param include_dataset_init_step: Whether to include the information about population of initial step (False)
     :return:
     """
 
@@ -381,24 +382,30 @@ def extract_evomol_experiment_data(evomol_exp_root):
                 contains_failed_obj_data = "success_obj_computation" in row
             else:
 
-                # Checking whether the current row is a success
-                if not contains_failed_obj_data or row[5] == "True":
-                    success_or_failed_key = "success"
-                else:
-                    success_or_failed_key = "failed"
+                # Extracting step value
+                step = int(row[0])
 
-                # Data common to success and failure case
-                output_dict["dataset_" + success_or_failed_key + "_step"].append(int(row[0]))
-                output_dict["dataset_" + success_or_failed_key + "_smiles"].append(row[1])
-                output_dict["dataset_" + success_or_failed_key + "_n_calls"].append(int(row[2]))
+                # Recording data if conditions are met
+                if include_dataset_init_step or int(step) >= 0:
 
-                # Data specific to success
-                if success_or_failed_key == "success":
-                    output_dict["dataset_success_obj_value"].append(float(row[3]))
+                    # Checking whether the current row is a success
+                    if not contains_failed_obj_data or row[5] == "True":
+                        success_or_failed_key = "success"
+                    else:
+                        success_or_failed_key = "failed"
 
-                # Data specific to failure
-                if success_or_failed_key == "failed":
-                    output_dict["dataset_failed_objective"].append(row[5] == "False")
+                    # Data common to success and failure case
+                    output_dict["dataset_" + success_or_failed_key + "_step"].append(step)
+                    output_dict["dataset_" + success_or_failed_key + "_smiles"].append(row[1])
+                    output_dict["dataset_" + success_or_failed_key + "_n_calls"].append(int(row[2]))
+
+                    # Data specific to success
+                    if success_or_failed_key == "success":
+                        output_dict["dataset_success_obj_value"].append(float(row[3]))
+
+                    # Data specific to failure
+                    if success_or_failed_key == "failed":
+                        output_dict["dataset_failed_objective"].append(row[5] == "False")
 
     # Adding timestamps data
     output_dict.update(extract_time_best_EvoMol(evomol_exp_root))
@@ -486,7 +493,7 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
 
             # Single run
             if sub_experiment_names is None:
-                curr_exp_result_dict = extract_evomol_experiment_data(path)
+                curr_exp_result_dict = extract_evomol_experiment_data(path, include_dataset_init_step)
 
                 # Transforming the dict so that each key is associated with a list containing a single result (to be
                 # consistent with the multiple runs results).
