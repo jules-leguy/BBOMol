@@ -436,7 +436,8 @@ def extract_multiple_evomol_experiments_data(evomol_multiple_data_root, experime
     return output_dict
 
 
-def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=None, sub_experiment_names=None):
+def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=None, sub_experiment_names=None,
+                                include_dataset_init_step=False):
     """
     Extracting the results of BBO and EvoMol experiments into a normalized dictionary, that can be interpreted by
     functions in bbomol.postprocessing.plot.
@@ -451,6 +452,7 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
     that contain individual runs.
     :param EvoMol_experiments_dict: dictionary that associates the names of the EvoMol experiments with the path of the
     results (optional)
+    :param include_dataset_init_step: whether to include the dataset in initial step
     :return: dictionary aggregating all experiments and runs
     """
 
@@ -471,7 +473,8 @@ def load_complete_input_results(BBO_experiments_dict, EvoMol_experiments_dict=No
 
         # Multiple runs
         else:
-            curr_exp_result_dict = extract_multiple_BBO_experiments_data(path, sub_experiment_names)
+            curr_exp_result_dict = extract_multiple_BBO_experiments_data(path, sub_experiment_names,
+                                                                         include_dataset_init_step)
 
         # Saving current experiment
         results_dict[exp_name] = curr_exp_result_dict

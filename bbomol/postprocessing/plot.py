@@ -7,6 +7,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from IPython.display import display, HTML
+from evomol import EvaluationStrategyComposant
+from evomol.evaluation import EvaluationError
+from evomol.molgraphops.molgraph import MolGraph
+from rdkit.Chem import MolFromSmiles
+from rdkit.Chem.Draw import MolsToGridImage
 
 from bbomol.postprocessing.evaluation import compute_best_so_far_matrix, compute_timestamps_ecdf, compute_ecdf, \
     compute_ERT, compute_ERT_timestamps
@@ -151,7 +156,8 @@ class PlotFigureTemplate(ABC):
         :param experiment_key:
         :return:
         """
-        return self.labels_dict[experiment_key] if self.labels_dict is not None and self.labels_dict and experiment_key in self.labels_dict else experiment_key
+        return self.labels_dict[
+            experiment_key] if self.labels_dict is not None and self.labels_dict and experiment_key in self.labels_dict else experiment_key
 
 
 class BestSoFarPlot(PlotFigureTemplate):
@@ -401,7 +407,104 @@ def plot_stable_dynamics(results_dict, exp_list_plot=None, plot_title=None, plot
     StableDynamicsPlot(exp_list_plot=exp_list_plot, plot_title=plot_title,
                        plot_name=plot_name, labels_dict=labels_dict, classes_dashes=classes_dashes,
                        classes_markers=classes_markers, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
-                       legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend).plot(results_dict)
+                       legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend).plot(
+        results_dict)
+
+
+class PropertyDistributionPlot(PlotFigureTemplate):
+
+    def __init__(self, property="obj_value", run_idx=0, calls_ranges=None, bins_range=None, plot_title=None,
+                 plot_name=None, exp_list_plot=None, labels_dict=None, xlim=None, ylim=None, xlabel=None, ylabel=None,
+                 output_dir_path=None, plot_legend=True, legend_loc=None):
+        """
+        Plotting the distribution of the given property during the course of optimization
+
+        :param property: Property to be represented. Can be either a string key in the dataset.csv file or an instance
+        of evomol.evaluation.EvaluationStrategy
+        :param run_idx: index of the run that is expected to be plotted (default : first run)
+        :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
+        distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
+        corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
+        :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
+        :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+        experiments of results_dict are plotted.
+        :param plot_title: title to be displayed on the plot (if None : "").
+        :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
+        :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
+        name)
+        :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
+        :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
+        :param xlabel : label of the x axis (if None, determined automatically)
+        :param ylabel : label of the y axis (if None, determined automatically)
+        :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
+        :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
+        :param plot_legend: whether to plot the legend (default True).
+        :return:
+        """
+
+        super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
+                         labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                         legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend)
+
+        self.property = property
+        self.run_idx = run_idx
+        self.calls_ranges = calls_ranges if calls_ranges is not None else [(0, 0), (1, float("inf"))]
+        self.bins_range = bins_range
+
+    def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
+
+        # Iterating over all ranges
+        for calls_range in self.calls_ranges:
+
+            # Computing mask for current range of number of calls to the objective function
+            mask = np.logical_and(
+                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) >= calls_range[0],
+                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) <= calls_range[1])
+
+            # Computing the property values for the current range
+            _, curr_range_property_values = _get_property_values(results_dict, experiment_key, self.run_idx,
+                                                                 self.property, mask)
+
+            # Plotting distribution
+            sns.distplot(curr_range_property_values, label=str(calls_range), kde=False,
+                         hist_kws={"range": self.bins_range}, bins=50)
+
+
+def plot_property_distribution_plot(results_dict, property="obj_value", run_idx=0, calls_ranges=None, bins_range=None,
+                                    exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None,
+                                    xlim=None, ylim=None, xlabel=None, ylabel=None, legend_loc="upper left",
+                                    output_dir_path=None, plot_legend=True):
+    """
+    Plotting the distribution of the given property during the course of optimization
+    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
+    :param property: Property to be represented. Can be either a string key in the dataset.csv file or an instance
+    of evomol.evaluation.EvaluationStrategy
+    :param run_idx: index of the run that is expected to be plotted (default : first run)
+    :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
+    distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
+    corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
+    :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
+    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+    experiments of results_dict are plotted.
+    :param plot_title: title to be displayed on the plot (if None : "").
+    :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
+    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
+    name)
+    :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
+    :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
+    :param xlabel : label of the x axis (if None, determined automatically)
+    :param ylabel : label of the y axis (if None, determined automatically)
+    :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
+    :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
+    :param plot_legend: whether to plot the legend (default True).
+    :return:
+    """
+
+    PropertyDistributionPlot(property=property, run_idx=run_idx, calls_ranges=calls_ranges, bins_range=bins_range,
+                             exp_list_plot=exp_list_plot, plot_title=plot_title, plot_name=plot_name,
+                             labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                             legend_loc=legend_loc, output_dir_path=output_dir_path,
+                             plot_legend=plot_legend).plot(results_dict)
 
 
 def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, plot_title=None, labels_dict=None):
@@ -470,3 +573,159 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
     pd.set_option("precision", 0)
     display(df)
     return df
+
+
+def _get_property_values(results_dict, exp_key, run_id, property, mask=None):
+    """
+    Computing the vector of property values for the given run of the given experiment using the given property.
+    The property can be either a string key that matches the key used in the output CSV file, or an
+    evomol.evaluation.EvaluationStrategy instance that will be used in this function to compute the property values.
+
+    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
+    :param exp_key: key of the experiment in results_dict
+    :param run_id: numerical index of the run
+    :param property: string key or evomol.evaluation.EvaluationStrategy instance
+    :param mask: mask (if None, all values are selected)
+    :return: tuple(str, numpy.ndarray) that contains the key of the property and its values
+    """
+
+    if mask is None:
+        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id], )), True)
+
+    # Computing properties
+    if isinstance(property, EvaluationStrategyComposant):
+
+        # Extracting SMILES list
+        smiles_list = np.array(results_dict[exp_key]["dataset_success_smiles"][run_id])[mask]
+
+        property_values = []
+        for smi in smiles_list:
+            try:
+                property_values.append(property.evaluate_individual(MolGraph(MolFromSmiles(smi)))[0])
+            except EvaluationError as e:
+                property_values.append(np.nan)
+
+        return property.keys()[0], np.array(property_values)
+
+    # Extracting property values from results_dict
+    else:
+        return property, np.array(np.array(results_dict[exp_key]["dataset_success_" + property][run_id])[mask],
+                                  dtype=np.float)
+
+
+def _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol):
+    """
+    Computing the list of molecules to be plotted and their legend.
+    The molecules are the n_mol_per_runs best solutions with respect to the first property
+    For each solution, the legend contains the value of each property
+    :param properties_values: dictionary that maps for each property the name of the property and its value for each
+    smiles in smiles_list
+    :param smiles_list: list of SMILES
+    :param n_mol: number of best solutions to be retrieved
+    :return: smiles_list, legends
+    """
+
+    legends = ["" for i in range(n_mol)]
+
+    mask_sol = None
+    smiles_to_plot = None
+    for i, (prop_name, prop_values) in enumerate(properties_values.items()):
+
+        # Main property that is used to sort the values
+        if i == 0:
+            # Computing mask of solutions to be plotted
+            mask_sol = np.argsort(prop_values)[::-1][:n_mol]
+
+            # Computing list of SMILES to be plotted
+            smiles_to_plot = np.array(smiles_list)[mask_sol]
+
+        # Adding first bracket to legend
+        if i == 1:
+            for j in range(n_mol):
+                legends[j] += " ["
+
+        # Adding property value to legend
+        for j in range(n_mol):
+            legends[j] += "{:.2f}".format(prop_values[mask_sol][j])
+
+        # Adding closing bracket or comma to legend
+        if i == len(properties_values.keys()) - 1 and i > 0:
+            for j in range(n_mol):
+                legends[j] += "]"
+        elif i > 0:
+            for j in range(n_mol):
+                legends[j] += ", "
+
+    return smiles_to_plot, legends
+
+
+def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_per_row=5, size=200, exp_list_plot=None,
+                        labels_dict=None, output_dir_path=None):
+    """
+    Plotting best solutions.
+
+    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
+    :param properties: List of properties to be represented as legend. The first one is used to sort the solutions.
+    If None, the objective function is used as only property (=["obj_value"]). Properties can be given either as string
+    keys in dataset.csv or as instances of evomol.evaluation.EvaluationStrategy
+    :param n_mol_per_run: number of solutions that are plotted for each run of each experiment
+    :param n_mol_per_row: number of solutions that are plotted in each row
+    :param size: size in pixels of each solution
+    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+    experiments of results_dict are plotted.
+    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
+    name)
+    :param output_dir_path: path to the directory in which the plots will be saved. If None, the plot is not saved.
+    :return:
+    """
+
+    # Computing list of experiments keys to be plotted
+    if exp_list_plot is None:
+        exp_list_plot = results_dict.keys()
+
+    # Computing list of properties to be plotted
+    properties = properties if properties is not None else ["obj_value"]
+
+    # Iterating over all experiments
+    for i, experiment_key in enumerate(exp_list_plot):
+
+        # Displaying experiment name
+        exp_name_display = labels_dict[
+            experiment_key] if labels_dict is not None and experiment_key in labels_dict else experiment_key
+        display(HTML("<h2>" + exp_name_display + "</h2>"))
+
+        # Initialization of list of mol objects and legends
+        curr_exp_mols = []
+        curr_exp_legends = []
+
+        # Iterating over all runs
+        for run_id in range(len(results_dict[experiment_key]["dataset_success_smiles"])):
+
+            # Iterating over all properties to retrieve all values
+            properties_values = {}
+            for prop in properties:
+                prop_key, prop_values = _get_property_values(results_dict, experiment_key, run_id, prop)
+                properties_values[prop_key] = prop_values
+
+            # Extracting list of SMILES
+            smiles_list = results_dict[experiment_key]["dataset_success_smiles"][run_id]
+
+            # Extracting SMILES and properties of best solutions
+            smiles_to_plot, legends = _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol_per_run)
+
+            # Recording mol objects and legends for current run
+            curr_exp_mols.extend(MolFromSmiles(smi) for smi in smiles_to_plot)
+            curr_exp_legends.extend(legends)
+
+        # Computing grid image for current experiment
+        img = MolsToGridImage(curr_exp_mols, legends=curr_exp_legends, molsPerRow=n_mol_per_row,
+                              subImgSize=(size, size))
+
+        # Displaying resulting image
+        display(img)
+
+        # Saving image
+        if output_dir_path is not None:
+            with open(join(output_dir_path, "best_sol_" + str(properties) + "_" + exp_name_display + ".png"),
+                      "wb") as f:
+                img.save(f, "png")
