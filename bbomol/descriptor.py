@@ -10,7 +10,7 @@ from rdkit.Chem.rdchem import GetPeriodicTable
 from rdkit.Chem.rdmolfiles import MolToSmiles, MolFromSmiles
 import numpy as np
 from ase.io import read as read_ase
-
+import tqdm
 
 class Descriptor(TransformerMixin, BaseEstimator, ABC):
 
@@ -82,7 +82,7 @@ class Descriptor(TransformerMixin, BaseEstimator, ABC):
     def transform(self, X):
         # Performing a parallel computation of the descriptor
         results_parallel = Parallel(n_jobs=self.n_jobs, batch_size=self.batch_size, pre_dispatch=self.pre_dispatch)(
-            delayed(self.transform_row)(X[i]) for i in range(len(X)))
+            delayed(self.transform_row)(X[i]) for i in tqdm.tqdm(range(len(X))))
 
         desc_comput = []
         successes_comput = []
