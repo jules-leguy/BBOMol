@@ -460,7 +460,6 @@ class ShinglesVectDesc(Descriptor):
         for i, smi in enumerate(tqdm.tqdm(X)):
 
             found_shingles = self.cache_desc_fun(smi, self.lvl, as_list=self.count)
-            print(found_shingles)
             curr_shg_vect = np.zeros((self.vect_size,))
             for shg in found_shingles:
                 curr_shg_vect[self.get_desc_id(shg)] += 1

@@ -676,8 +676,10 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
     :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
     name)
     :param output_dir_path: path to the directory in which the plots will be saved. If None, the plot is not saved.
-    :return:
+    :return: dictionary that contains for each experiment all the solutions displayed
     """
+
+    displayed_molecules_dict = {}
 
     # Computing list of experiments keys to be plotted
     if exp_list_plot is None:
@@ -688,6 +690,8 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
 
     # Iterating over all experiments
     for i, experiment_key in enumerate(exp_list_plot):
+
+        displayed_molecules_dict[experiment_key] = []
 
         # Displaying experiment name
         exp_name_display = labels_dict[
@@ -717,6 +721,8 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
             curr_exp_mols.extend(MolFromSmiles(smi) for smi in smiles_to_plot)
             curr_exp_legends.extend(legends)
 
+            displayed_molecules_dict[experiment_key].append(smiles_to_plot)
+
         # Computing grid image for current experiment
         img = MolsToGridImage(curr_exp_mols, legends=curr_exp_legends, molsPerRow=n_mol_per_row,
                               subImgSize=(size, size))
@@ -729,3 +735,6 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
             with open(join(output_dir_path, "best_sol_" + str(properties) + "_" + exp_name_display + ".png"),
                       "wb") as f:
                 img.save(f, "png")
+
+    # Returning a dictionary that contains all displayed solutions
+    return displayed_molecules_dict
