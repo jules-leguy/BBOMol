@@ -12,6 +12,7 @@ import numpy as np
 from ase.io import read as read_ase
 import tqdm
 
+
 class Descriptor(TransformerMixin, BaseEstimator, ABC):
 
     def __init__(self, cache_location=None, n_jobs=1, batch_size='auto', pre_dispatch='2 * n_jobs', MM_program="obabel",
@@ -456,7 +457,7 @@ class ShinglesVectDesc(Descriptor):
 
         desc = np.zeros((len(X), self.vect_size))
 
-        for i, smi in enumerate(X):
+        for i, smi in enumerate(tqdm.tqdm(X)):
 
             found_shingles = self.cache_desc_fun(smi, self.lvl, as_list=self.count)
             print(found_shingles)
