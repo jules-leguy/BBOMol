@@ -404,7 +404,7 @@ class MBTRDesc(Descriptor):
 
 class ShinglesVectDesc(Descriptor):
 
-    def __init__(self, cache_location=None, lvl=1, vect_size=4000, count=False):
+    def __init__(self, cache_location=None, lvl=1, vect_size=4000, count=False, external_desc_id_dict=None):
         """
         Shingles vector descriptor. Representing the molecule in the form of a boolean vector (or a count vector) of
         shingles of radius 1 to lvl.
@@ -420,13 +420,15 @@ class ShinglesVectDesc(Descriptor):
         :param lvl: diameter of shingles
         :param vect_size: size of the output vector. Limits the maximum number of shingles that can be processed
         :param count: whether to count the number of shingles or to indicate their boolean presence
+        :param external_desc_id_dict: external dictionary mapping a shingle smiles with an integer id that is used as
+        index in the output descriptor vector
         """
         super().__init__(cache_location=cache_location)
 
         self.lvl = lvl
         self.vect_size = vect_size
-        self.next_id = 0
-        self.desc_id_dict = {}
+        self.next_id = 0 if external_desc_id_dict is None else max(external_desc_id_dict.values()) + 1
+        self.desc_id_dict = {} if external_desc_id_dict is None else external_desc_id_dict
         self.count = count
 
         # Setting up the cache object
@@ -457,6 +459,7 @@ class ShinglesVectDesc(Descriptor):
         for i, smi in enumerate(X):
 
             found_shingles = self.cache_desc_fun(smi, self.lvl, as_list=self.count)
+            print(found_shingles)
             curr_shg_vect = np.zeros((self.vect_size,))
             for shg in found_shingles:
                 curr_shg_vect[self.get_desc_id(shg)] += 1
