@@ -85,20 +85,18 @@ class Descriptor(TransformerMixin, BaseEstimator, ABC):
         results_parallel = Parallel(n_jobs=self.n_jobs, batch_size=self.batch_size, pre_dispatch=self.pre_dispatch)(
             delayed(self.transform_row)(X[i]) for i in tqdm.tqdm(range(len(X))))
 
-        desc_comput = []
-        successes_comput = []
+        results = np.zeros((self.descriptors_shape(len(X))))
+        successes_comput = np.full((len(X),), False)
 
         # Retrieving all parallel results
+        i = 0
         for desc_row, success in results_parallel:
             # Saving descriptor
-            desc_comput.append(desc_row)
-            successes_comput.append(success)
+            results[i] = desc_row
+            successes_comput[i] = success
+            i += 1
 
-        # Reshaping arrays
-        desc_comput = np.array(desc_comput).reshape(self.descriptors_shape(len(X)))
-        successes_comput = np.array(successes_comput).reshape((len(X),))
-
-        return desc_comput, successes_comput
+        return results, successes_comput
 
     def compute_geometry(self, smiles):
         """
