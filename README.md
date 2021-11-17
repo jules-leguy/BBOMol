@@ -159,7 +159,8 @@ for the experiment (**"BBOMol_optim/**).
 (**1**).
 * ```"dft_working_dir"``` : path of the directory in which DFT calculations (if any) are performed and stored
 (**"/tmp"**).
-* ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**). 
+* ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**).
+* ```"dft_base"```: DFT calculations base (__"3-21G*"__).
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
 * ```"MM_program"```: program used to perform MMFF94 molecular mechanics optimization. It can be either 
