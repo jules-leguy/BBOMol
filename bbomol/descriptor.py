@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from io import StringIO
 
-from evomol.evaluation_dft import rdkit_mmff94_xyz, obabel_mmff94_xyz
+from evomol.evaluation_dft import rdkit_mm_xyz, obabel_mmff94_xyz
 from evomol.evaluation_entropy import extract_shingles
 from sklearn.base import TransformerMixin, BaseEstimator
 from dscribe.descriptors import SOAP, CoulombMatrix, MBTR
@@ -15,19 +15,22 @@ import tqdm
 
 class Descriptor(TransformerMixin, BaseEstimator, ABC):
 
-    def __init__(self, cache_location=None, n_jobs=1, batch_size='auto', pre_dispatch='2 * n_jobs', MM_program="obabel",
-                 MM_program_parameters=None):
+    def __init__(self, cache_location=None, n_jobs=1, batch_size='auto', pre_dispatch='2 * n_jobs',
+                 MM_program="obabel_mmff94", MM_program_parameters=None):
         """
         :param cache_location: path of the joblib.Memory data
         :param n_jobs: number of jobs used for parallel computation of the descriptors
-        :param MM_program: "obabel" to compute MM with obabel or "rdkit" to compute MM using RDKit
+        :param MM_program: program and force field used to compute MM geometry. Options :
+            - "obabel_mmff94" or "obabel" to compute MM with OpenBabel using the MMFF94 force field
+            - "rdkit_mmff94" or "rdkit" to compute MM with RDKit using the MMFF94 force field
+            - "rdkit_uff" to compute MM with RDKit using the UFF force field
         :param MM_program_parameters: parameters to be given to the MM programm function
         """
 
-        if MM_program == "obabel":
+        if MM_program == "obabel" or MM_program == "obabel_mmff94":
             self.geometry_function = obabel_mmff94_xyz
-        elif MM_program == "rdkit":
-            self.geometry_function = rdkit_mmff94_xyz
+        elif "rdkit" in MM_program:
+            self.geometry_function = rdkit_mm_xyz
         elif callable(MM_program):
             self.geometry_function = MM_program
 
@@ -36,8 +39,9 @@ class Descriptor(TransformerMixin, BaseEstimator, ABC):
         self.n_jobs = n_jobs
         self.batch_size = batch_size
         self.pre_dispatch = pre_dispatch
+        self.MM_program = MM_program
 
-        if MM_program_parameters is None and MM_program == "rdkit":
+        if MM_program_parameters is None and "rdkit" in MM_program:
             geometry_function_parameters = {"max_iterations": 500}
         elif MM_program_parameters is None:
             geometry_function_parameters = {}
@@ -111,7 +115,10 @@ class Descriptor(TransformerMixin, BaseEstimator, ABC):
 
         try:
 
-            xyz_str, success = self.cache_geom_fun(smiles, **self.geometry_function_parameters)
+            if self.MM_program == "rdkit_uff":
+                xyz_str, success = self.cache_geom_fun(smiles, ff="UFF", **self.geometry_function_parameters)
+            else:
+                xyz_str, success = self.cache_geom_fun(smiles, **self.geometry_function_parameters)
 
             if success:
                 f = StringIO(xyz_str)

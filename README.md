@@ -163,12 +163,12 @@ for the experiment (**"BBOMol_optim/**).
 * ```"dft_base"```: DFT calculations base (__"3-21G*"__).
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
-* ```"MM_program"```: program used to perform MMFF94 molecular mechanics optimization. It can be either 
-[RDKit](https://doi.org/10.1186/s13321-014-0037-3) (**"rdkit"**) or [OpenBabel](https://doi.org/10.1186/1758-2946-3-33)
-("obabel"). The selected program will be used to compute MBTR and SOAP descriptors and the initial geometry of DFT 
-calculations. 
-
-
+* ```"MM_program"```: program and force field used to perform molecular mechanics optimization and initial geometry of 
+DFT calculations. The options are :
+    * **"rdkit_mmff94"** or "rdkit" to use the MMFF94 force field with [RDKit](https://doi.org/10.1186/s13321-014-0037-3)
+    * "obabel_mmff94" or "obabel" to use the MMFF94 force field with [OpenBabel](https://doi.org/10.1186/1758-2946-3-33)
+    * "rdkit_uff" to use the UFF force field with [RDKit](https://doi.org/10.1186/s13321-014-0037-3)
+    
 ### Parallelization
 
 The ```"parallelization"``` attribute is used to define the parallelization parameters. It can be set with a dictionary

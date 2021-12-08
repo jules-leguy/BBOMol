@@ -27,7 +27,7 @@ def _extract_explicit_IO_parameters(parameters_dict):
         "dft_base": input_io_parameters["dft_base"] if "dft_base" in input_io_parameters else "3-21G*",
         "dft_cache_files": input_io_parameters["dft_cache_files"] if "dft_cache_files" in input_io_parameters else [],
 
-        "MM_program": input_io_parameters["MM_program"] if "MM_program" in input_io_parameters else "rdkit"
+        "MM_program": input_io_parameters["MM_program"] if "MM_program" in input_io_parameters else "rdkit_mmff94"
     }
 
     for parameter in input_io_parameters:
