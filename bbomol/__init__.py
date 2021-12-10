@@ -5,7 +5,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 
 from bbomol.bboalg import BBOAlg
-from bbomol.descriptor import MBTRDesc, ShinglesVectDesc, SOAPDesc, CoulombMatrixDesc
+from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc
 from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit
 from bbomol.model import GPRSurrogateModelWrapper
 from bbomol.objective import EvoMolEvaluationStrategyWrapper

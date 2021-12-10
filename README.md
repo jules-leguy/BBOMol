@@ -7,6 +7,8 @@ BBOMol depends on [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) for evolu
 function. Follow first the installation steps described on <a href='https://github.com/jules-leguy/evomol'>EvoMol 
 repository</a>. Make sure to follow **Installation** and **DFT and Molecular Mechanics optimization** sections.
 
+Then follow the following commands to install BBOMol.
+
 ```shell script
 $ git clone https://github.com/jules-leguy/BBOMol.git     # Cloning repository
 $ cd BBOMol                                               # Moving into BBOMol directory
@@ -16,6 +18,18 @@ $ pip install dscribe                                     # Installing additiona
 $ conda install -c conda-forge notebook                   # Installing jupyter-notebook to access the reproduction notebooks
 $ python -m pip install .                                 # Installing BBOMol
 ```
+
+Finally, type the following commands to install [ChemDesc](https://github.com/jules-leguy/ChemDesc), a dependency that 
+is required to compute the molecular descriptors.
+
+```shell script
+$ cd ..                                                   # Go back to the previous directory if you are still in the BBOMol installation directory
+$ git clone https://github.com/jules-leguy/ChemDesc.git   # Clone ChemDesc
+$ cd chemdesc                                             # Move into ChemDesc directory
+$ conda activate evomolenv                                # Activate evomolenv environment
+$ python -m pip install .                                 # Install ChemDesc
+```
+
 
 To use BBOMol, make sure to activate the *evomolenv* conda environment.
 
