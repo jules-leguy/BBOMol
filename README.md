@@ -101,6 +101,8 @@ respectively encode the atomic numbers (**10**), the interatomic distances (**25
   * ```"count"``` : if False, the descriptor is a boolean vector that represents whether the i<sup>th</sup> shingle is 
 present in the molecule. If True, the descriptor is an integer vector that counts the number of occurrences of the 
 i<sup>th</sup> shingle in the molecule (**True**).
+  * ```"external_dict"``` dictionary or path to a json dictionary that maps SMILES of shingles with a unique identifier
+that will be used as index in the output representation.
 * *Parameters specific to SOAP (see 
 [DScribe documentation](https://singroup.github.io/dscribe/latest/tutorials/descriptors/soap.html))*
   * ```"rcut"``` : cutoff for local environments (**6.0** Å)

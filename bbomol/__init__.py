@@ -115,6 +115,7 @@ def _extract_explicit_descriptor_parameters(descriptor_parameters_dict):
         "lvl": descriptor_parameters_dict["lvl"] if "lvl" in descriptor_parameters_dict else 1,
         "vect_size": descriptor_parameters_dict["vect_size"] if "vect_size" in descriptor_parameters_dict else 2000,
         "count": descriptor_parameters_dict["count"] if "count" in descriptor_parameters_dict else True,
+        "external_dict": descriptor_parameters_dict["external_dict"] if "external_dict" in descriptor_parameters_dict else None
     }
 
     for parameter in descriptor_parameters_dict:
