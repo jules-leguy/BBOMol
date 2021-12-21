@@ -225,7 +225,8 @@ def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_pa
 
         desc = ShinglesVectDesc(lvl=surrogate_explicit_parameters["descriptor"]["lvl"],
                                 vect_size=surrogate_explicit_parameters["descriptor"]["vect_size"],
-                                count=surrogate_explicit_parameters["descriptor"]["count"])
+                                count=surrogate_explicit_parameters["descriptor"]["count"],
+                                external_desc_id_dict=surrogate_explicit_parameters["descriptor"]["external_dict"])
 
     elif surrogate_explicit_parameters["descriptor"]["type"] == "SOAP":
 
