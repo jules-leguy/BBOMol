@@ -234,7 +234,7 @@ def run_EvoMol(i):
         "io_parameters": {
             "model_path": "HOMO_EvoMol/" + str(i),
             "record_all_generated_individuals": True,
-            "dft_MM_program": "rdkit",
+            "dft_MM_program": "rdkit_mmff94",
             "dft_working_dir": os.path.abspath("test/dft_files"),
         },
         "action_space_parameters": {
