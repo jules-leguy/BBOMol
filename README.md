@@ -13,9 +13,6 @@ Then follow the following commands to install BBOMol.
 $ git clone https://github.com/jules-leguy/BBOMol.git     # Cloning repository
 $ cd BBOMol                                               # Moving into BBOMol directory
 $ conda activate evomolenv                                # Activating anaconda environment
-$ conda install scikit-learn=0.22.1                       # Installing additional scikit-learn dependency
-$ pip install dscribe                                     # Installing additional DScribe dependency
-$ conda install -c conda-forge notebook                   # Installing jupyter-notebook to access the reproduction notebooks
 $ python -m pip install .                                 # Installing BBOMol
 ```
 
@@ -25,11 +22,12 @@ is required to compute the molecular descriptors.
 ```shell script
 $ cd ..                                                   # Go back to the previous directory if you are still in the BBOMol installation directory
 $ git clone https://github.com/jules-leguy/ChemDesc.git   # Clone ChemDesc
-$ cd chemdesc                                             # Move into ChemDesc directory
-$ conda activate evomolenv                                # Activate evomolenv environment
+$ cd ChemDesc                                             # Move into ChemDesc directory
+$ conda activate evomolenv                                # Activate environment
+$ conda install -c conda-forge dscribe                    # Installing DScribe dependency
+$ conda install scikit-learn                              # Installing Scikit-Learn dependency
 $ python -m pip install .                                 # Install ChemDesc
 ```
-
 
 To use BBOMol, make sure to activate the *evomolenv* conda environment.
 
