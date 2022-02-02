@@ -570,7 +570,7 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
 
     # Displaying resulting array
     df = pd.DataFrame.from_dict(ERT_dict)
-    pd.set_option("precision", 0)
+    pd.set_option("display.precision", 0)
     display(df)
     return df
 
