@@ -13,7 +13,7 @@ def run(i):
     run_optimization({
         "io_parameters":{
             "results_path": output_path + str(i) + "/",
-            "MM_program": "rdkit",
+            "MM_program": "rdkit_mmff94",
             "dft_working_dir": os.environ["DFT_COMPUT_RDKIT_MM"]
         },
         "obj_function": "homo",
