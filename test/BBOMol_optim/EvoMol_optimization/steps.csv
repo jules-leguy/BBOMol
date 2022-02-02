@@ -1,0 +1,3 @@
+EI_mean,EI_med,EI_min,EI_max,EI_std,total_mean,total_med,total_min,total_max,total_std,objective_calls,n_replaced,timestamps
+0.0,0.0,0,0,0.0,0.0,0.0,0,0,0.0,0,0,0.0018472671508789062
+-inf,0.0,-inf,0.025549866926288717,nan,-inf,0.0,-inf,0.025549866926288717,nan,0,10,0.19835519790649414

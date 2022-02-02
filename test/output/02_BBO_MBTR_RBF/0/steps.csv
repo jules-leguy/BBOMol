@@ -1,0 +1,2 @@
+step,obj_mean,obj_med,obj_min,obj_max,n_generated,n_obj_calls,step_duration,fit_duration,test_prediction_duration,optim_duration,desc_obj_comput_duration,time_desc,time_obj,alg_total_time,min_desc_row_size
+0,nan,nan,nan,nan,0,0,0,0,0,0,0,0,0,2.0066287517547607,2300
