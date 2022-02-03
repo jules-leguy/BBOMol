@@ -173,6 +173,7 @@ for the experiment (**"BBOMol_optim/**).
 (**"/tmp"**).
 * ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**).
 * ```"dft_base"```: DFT calculations base (__"3-21G*"__).
+* ```"dft_n_jobs"```: number of threads assigned to each DFT calculation (**1**).
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
 * ```"MM_program"```: program and force field used to perform molecular mechanics optimization and initial geometry of 
@@ -189,10 +190,10 @@ containing the following entries.
 parallel (**1**).
 * ```"n_jobs_desc_comput"``` : number of jobs to compute the descriptors in parallel (**1**). This parameter is ignored
 when computing the vector of shingles as it cannot be parallelized.
-* ```"n_jobs_obj_comput"```: number of jobs to evaluate the selected solutions using the objective function in parallel
-(**1**). In case of DFT evaluation, this is different to the parameter that sets the number of threads to perform DFT 
-optimizations. The latter is set to 1 by default and cannot be accessed for now, except if using an
-evomol.evaluation_dft.OPTEvaluationStrategy instance as objective function.
+* ```"n_jobs_obj_comput"```: number of jobs to evaluate the selected solutions in parallel using the objective function
+(**1**). In case of DFT evaluation, this is different from the parameter that sets the number of threads to perform each 
+DFT calculation (internal to the objective function). For the latter, see the ```dft_n_jobs``` parameter in the BBOMol
+```"io_parameters"``` dictionary.
 
 ## Visualization
 
