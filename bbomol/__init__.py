@@ -25,8 +25,10 @@ def _extract_explicit_IO_parameters(parameters_dict):
         "dft_working_dir": input_io_parameters[
             "dft_working_dir"] if "dft_working_dir" in input_io_parameters else "/tmp",
         "dft_base": input_io_parameters["dft_base"] if "dft_base" in input_io_parameters else "3-21G*",
+        "dft_method": input_io_parameters["dft_method"] if "dft_method" in input_io_parameters else "B3LYP",
         "dft_cache_files": input_io_parameters["dft_cache_files"] if "dft_cache_files" in input_io_parameters else [],
         "dft_n_jobs": input_io_parameters["dft_n_jobs"] if "dft_n_jobs" in input_io_parameters else 1,
+        "dft_mem_mb": input_io_parameters["dft_mem_mb"] if "dft_mem_mb" in input_io_parameters else 512,
         "MM_program": input_io_parameters["MM_program"] if "MM_program" in input_io_parameters else "rdkit_mmff94"
     }
 
@@ -183,7 +185,9 @@ def _parse_objective_function(obj_fun_explicit, IO_explicit_parameters, merit_op
             "dft_cache_files": IO_explicit_parameters["dft_cache_files"],
             "dft_MM_program": IO_explicit_parameters["MM_program"],
             "dft_base": IO_explicit_parameters["dft_base"],
-            "dft_n_jobs": IO_explicit_parameters["dft_n_jobs"]
+            "dft_method": IO_explicit_parameters["dft_method"],
+            "dft_n_jobs": IO_explicit_parameters["dft_n_jobs"],
+            "dft_mem_mb": IO_explicit_parameters["dft_mem_mb"]
         },
         # explicit_search_parameters_dict=evomol._extract_explicit_search_parameters(
         #     merit_optim_explicit_parameters["evomol_parameters"])

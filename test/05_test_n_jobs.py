@@ -20,6 +20,7 @@ run_optimization({
     },
     "io_parameters": {
         "dft_n_jobs": 4,
+        "dft_mem_mb": 5000,
         "results_path": results_path
     }
 })

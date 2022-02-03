@@ -173,7 +173,9 @@ for the experiment (**"BBOMol_optim/**).
 (**"/tmp"**).
 * ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**).
 * ```"dft_base"```: DFT calculations base (__"3-21G*"__).
+* ```"dft_method"``` : DFT calculations method (**B3LYP**).
 * ```"dft_n_jobs"```: number of threads assigned to each DFT calculation (**1**).
+* ```"dft_mem_mb```: memory assigned to each DFT calculation in MB (**512**).
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
 * ```"MM_program"```: program and force field used to perform molecular mechanics optimization and initial geometry of 
