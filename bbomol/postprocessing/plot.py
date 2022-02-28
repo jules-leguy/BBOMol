@@ -602,7 +602,7 @@ def _get_property_values(results_dict, exp_key, run_id, prop, mask=None):
     """
 
     if mask is None:
-        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id], )), True)
+        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id]), ), True)
 
     # Computing properties
     if isinstance(prop, EvaluationStrategyComposant):

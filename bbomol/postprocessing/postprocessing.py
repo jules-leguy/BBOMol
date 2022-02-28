@@ -386,9 +386,15 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
                 row_idx_to_key = {}
                 additional_data_dict_dataset = {}
                 for j in range(6, row_size):
-                    row_idx_to_key[j] = row[j]
-                    additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]] = []
 
+                    # If the key is met for the first time
+                    if row[j] not in row_idx_to_key.values():
+                        row_idx_to_key[j] = row[j]
+                        additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]] = []
+
+                    # If the key has already been met then the column is a duplicate a must be ignored
+                    else:
+                        row_idx_to_key[j] = None
             else:
 
                 # Extracting step value
@@ -414,8 +420,11 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
 
                         # Extracting data in additional columns
                         for j in range(6, row_size):
-                            additional_data_dict_dataset[
-                                "dataset_success_" + row_idx_to_key[j]].append(row[j])
+
+                            # Saving the data for current column if it not a duplicate
+                            if row_idx_to_key[j] is not None:
+                                additional_data_dict_dataset[
+                                    "dataset_success_" + row_idx_to_key[j]].append(row[j])
 
                     # Data specific to failure
                     if success_or_failed_key == "failed":
