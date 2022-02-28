@@ -305,7 +305,7 @@ plot_ecdf(
 ### Best solution
 
 Plotting the best solution found depending on the number of calls to the objective function (DFT calculations). It is 
-possible to represent the mean of the best solution across all runs (```"mean"``` keyword), to represent the min and
+possible to represent the mean of the best solution across all runs (```"mean"``` keyword for ```"metric"``` parameter), to represent the min and
 max among the best solution across all runs (```"min_max"``` keyword) or to represent both (```"both"``` keyword).
 
 ```python
@@ -313,7 +313,8 @@ from bbomol.postprocessing.plot import plot_best_so_far
 
 plot_best_so_far(
   
-    # Parameters specific to bbomol.postprocessing.plot.plot_ecdf 
+    # Parameters specific to bbomol.postprocessing.plot.plot_best_so_far
+    prop="obj_value", # Property to be represented
     metric="both", # Representing both the mean of the best solution across all runs, and the minimum and maximum best solution across all runs. They can be represented independently using "mean" or "min_max".
     
     # Parameters generic to bbomol.postprocessing.plot.plot* functions
@@ -328,7 +329,12 @@ plot_best_so_far(
 <img src="test/best_so_far_both_.png" alt="Best solution" width="500"/>
 </p>
 
-
+It is also possible to specify which property to plot, using the ```"prop"``` parameter. Options available are :
+* **"obj_value"** : plotting the objective function value.
+* keyword of a property that was computed during the optimization (name of the column of interest in the *pop.csv* 
+file).
+* instance of *evomol.evaluation.EvaluationStrategyComposant* evaluating any property (see 
+*evomol.get_objective_function_instance* method in the [documentation of EvoMol](https://github.com/jules-leguy/EvoMol))
 ### Expected running time (ERT)
 Displaying the [ERT](https://doi.org/10.1080/10556788.2020.1808977) in number of calls to the objective function using targets in the range [-7, -3] eV with a step size of 1.
 
