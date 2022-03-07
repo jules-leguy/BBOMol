@@ -658,7 +658,15 @@ def _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol):
 
         # Adding property value to legend
         for j in range(n_mol):
-            legends[j] += "{:.2f}".format(prop_values[mask_sol][j])
+            curr_val = prop_values[mask_sol][j]
+
+            # Can be written as an integer
+            if isinstance(curr_val, int) or (isinstance(curr_val, float) and curr_val.is_integer()):
+                legends[j] += str(curr_val)
+
+            # Is a float with non null decimal values
+            else:
+                legends[j] += "{:.2f}".format(curr_val)
 
         # Adding closing bracket or comma to legend
         if i == len(properties_values.keys()) - 1 and i > 0:
