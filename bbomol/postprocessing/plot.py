@@ -660,9 +660,15 @@ def _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol):
         for j in range(n_mol):
             curr_val = prop_values[mask_sol][j]
 
+            print("curr val " + str(curr_val))
+            print("is int " + str(isinstance(curr_val, int)))
+            print("is float " + str(isinstance(curr_val, float)))
+            if isinstance(curr_val, float):
+                print("is integer : " + str(curr_val.is_integer()))
+
             # Can be written as an integer
             if isinstance(curr_val, int) or (isinstance(curr_val, float) and curr_val.is_integer()):
-                legends[j] += str(curr_val)
+                legends[j] += str(int(curr_val))
 
             # Is a float with non null decimal values
             else:
