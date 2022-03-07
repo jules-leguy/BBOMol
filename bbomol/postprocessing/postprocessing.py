@@ -172,8 +172,8 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         success_dataset_n_calls.append(int(n_calls))
 
                         # Extracting data in additional columns
-                        for j in range(4, row_size):
-                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]].append(row[j])
+                        for j in range(5 if contains_success_col else 4, row_size):
+                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]].append(float(row[j]))
 
                     else:
                         failed_step.append(int(step))
@@ -183,8 +183,8 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         failed_n_calls.append(int(n_calls))
 
                         # Extracting data in additional columns
-                        for j in range(4, row_size):
-                            additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]].append(row[j])
+                        for j in range(5 if contains_success_col else 4, row_size):
+                            additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]].append(float(row[j]))
 
     # Extracting data in failed_smiles.csv file if exists
     if exists(join(bbo_exp_root, "failed_dataset.csv")):
