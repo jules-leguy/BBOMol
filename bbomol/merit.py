@@ -1,3 +1,4 @@
+import time
 from abc import abstractmethod
 
 from .bboalg import compute_descriptors
@@ -77,8 +78,11 @@ class Merit(EvaluationStrategy):
         """
 
         self.scores = []
+        self.comput_time = []
         for idx, ind in enumerate(population):
             if ind is not None:
+
+                tstart = time.time()
 
                 # Extracting SMILES of current individual
                 smi = ind.to_aromatic_smiles()
@@ -93,6 +97,7 @@ class Merit(EvaluationStrategy):
 
                 # Computing score
                 self.scores.append(score)
+                self.comput_time.append(time.time() - tstart)
 
 
 class SurrogateValueMerit(Merit):
@@ -200,10 +205,11 @@ class ExpectedImprovementMerit(Merit):
         if self.init_pop_zero_EI:
 
             self.scores = []
+            self.comput_time = []
             for i, ind in enumerate(population):
                 if ind is not None:
                     self.scores.append(0)
-
+                    self.comput_time.append(0)
         else:
             print("CALL TO SUPER")
             super(ExpectedImprovementMerit, self).compute_record_scores_init_pop(population)
