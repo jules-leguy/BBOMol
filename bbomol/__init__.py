@@ -67,7 +67,7 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
         "init_pop_strategy": input_merit_optim_parameters[
             "init_pop_strategy"] if "init_pop_strategy" in input_merit_optim_parameters else "random_weighted",
         "noise_based": input_merit_optim_parameters["noise_based"] if "noise_based" in input_merit_optim_parameters else False,
-        "init_pop_zero_EI": input_merit_optim_parameters["init_pop_zero_EI"] if "init_pop_zero_EI" in input_merit_optim_parameters else False
+        "init_pop_zero_EI": input_merit_optim_parameters["init_pop_zero_EI"] if "init_pop_zero_EI" in input_merit_optim_parameters else True
     }
 
     for parameter in input_merit_optim_parameters:
