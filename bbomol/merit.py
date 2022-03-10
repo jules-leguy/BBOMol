@@ -91,8 +91,9 @@ class Merit(EvaluationStrategy):
                 mask_smi = np.array(self.dataset_smiles_list) == smi
 
                 # Extracting the transformed descriptors of given SMILES
-                X = self.dataset_X_transformed[mask_smi]
-
+                # Using [:1] to select only the first occurrence (in case the smiles has several occurrences in the
+                # dataset)
+                X = self.dataset_X_transformed[mask_smi][:1]
                 score = self.compute_merit_value(X)
 
                 # Computing score
