@@ -1,5 +1,6 @@
 import csv
 import time
+import traceback
 from os import makedirs
 from os.path import join
 
@@ -960,6 +961,7 @@ class BBOAlg:
         except Exception as e:
             with open(join(self.results_path, "error.txt"), "w") as f:
                 f.write(str(e))
+                f.write(traceback.format_exc())
             raise e
         finally:
 
