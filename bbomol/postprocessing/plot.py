@@ -263,13 +263,16 @@ class BestSoFarPlot(PlotFigureTemplate):
 
     def __init__(self, prop="obj_value", metric="mean", plot_title=None, plot_name=None, exp_list_plot=None,
                  labels_dict=None, classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None,
-                 ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True):
+                 ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True,
+                 plot_last_common_data_all_runs=False):
         """
         :param prop: property to be represented. Can be either a string key in the dataset.csv file or an instance
         of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
         :param metric: str key describing whether the mean best value ("mean"), the min and max best value ("min_max")
         or both ("both") are plotted
         :param legend_loc: str location of the legend (default : "lower right")
+        :param plot_last_common_data_all_runs: whether to plot a point at the position of the last x value that was
+        shared across all runs (if this position differs).
         """
 
         super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
@@ -282,6 +285,7 @@ class BestSoFarPlot(PlotFigureTemplate):
         self.xlabel_default = "Number of calls to the objective function"
         self.ylabel_default = "Best value"
         self.plot_type_name = "best_so_far_" + self.metric
+        self.plot_last_common_data_all_runs = plot_last_common_data_all_runs
 
     def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
 
@@ -301,16 +305,32 @@ class BestSoFarPlot(PlotFigureTemplate):
         )
 
         if self.metric == "mean" or self.metric == "both":
-            plt.plot(obj_calls, best_so_far_matrix.mean(axis=0), label=self.get_display_experiment_name(experiment_key),
-                     linestyle=linestyle, marker=marker, markevery=100)
+            p = plt.plot(obj_calls, best_so_far_matrix.mean(axis=0),
+                         label=self.get_display_experiment_name(experiment_key), linestyle=linestyle, marker=marker,
+                         markevery=100)
 
         if self.metric == "min_max" or self.metric == "both":
-            plt.fill_between(obj_calls, best_so_far_matrix.min(axis=0), best_so_far_matrix.max(axis=0), alpha=0.2)
+            p = plt.fill_between(obj_calls, best_so_far_matrix.min(axis=0), best_so_far_matrix.max(axis=0), alpha=0.2)
+
+        # Extracting the last number of calls for each run of the current experiment
+        max_calls_list = []
+        for i in range(len(results_dict[experiment_key]["dataset_success_n_calls"])):
+            curr_max_calls = max(results_dict[experiment_key]["dataset_success_n_calls"][i][-1],
+                                 results_dict[experiment_key]["dataset_failed_n_calls"][i][-1] if
+                                 len(results_dict[experiment_key]["dataset_failed_n_calls"][i]) > 0 else -float("inf"))
+            max_calls_list.append(curr_max_calls)
+
+        # If the experiment has several stops at different stages across the runs, marking the first of these stops
+        if self.plot_last_common_data_all_runs and min(max_calls_list) != max(max_calls_list) \
+           and min(max_calls_list) < self.xlim[1] if self.xlim is not None else True:
+            plt.plot([min(max_calls_list)], [best_so_far_matrix.mean(axis=0)[min(max_calls_list) - 1]],
+                     marker="o", color=plt.gca().lines[-1].get_color())
 
 
-def plot_best_so_far(results_dict, prop="obj_value", metric="mean", exp_list_plot=None, plot_title=None, plot_name=None,
-                     labels_dict=None, classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None,
-                     ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True):
+def plot_best_so_far(results_dict, prop="obj_value", metric="mean", plot_last_common_data_all_runs=False,
+                     exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None, classes_dashes=None,
+                     classes_markers=None, xlim=None, ylim=None, xlabel=None, ylabel=None, legend_loc="lower right",
+                     output_dir_path=None, plot_legend=True):
     """
     Plotting the aggregation of the best solution so far across different runs of several experiments.
     It is possible to plot the mean of the best and/or the min-max interval.
@@ -320,6 +340,8 @@ def plot_best_so_far(results_dict, prop="obj_value", metric="mean", exp_list_plo
     of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
     :param metric: whether to plot the average of the best solutions ("mean"), or the min-max interval of the solutions
     ("min_max") of both ("both").
+    :param plot_last_common_data_all_runs: whether to plot a point at the position of the last x value that was
+    shared across all runs (if this position differs).
     :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
     experiments of results_dict are plotted.
     :param plot_title: title to be displayed on the plot (if None : "").
@@ -342,7 +364,8 @@ def plot_best_so_far(results_dict, prop="obj_value", metric="mean", exp_list_plo
     BestSoFarPlot(prop=prop, metric=metric, plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
                   labels_dict=labels_dict, classes_dashes=classes_dashes, classes_markers=classes_markers, xlim=xlim,
                   ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc, output_dir_path=output_dir_path,
-                  plot_legend=plot_legend).plot(results_dict)
+                  plot_legend=plot_legend,
+                  plot_last_common_data_all_runs=plot_last_common_data_all_runs).plot(results_dict)
 
 
 class PropertyDistributionPlot(PlotFigureTemplate):
@@ -602,7 +625,7 @@ def _get_property_values(results_dict, exp_key, run_id, prop, mask=None):
     """
 
     if mask is None:
-        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id]), ), True)
+        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id]),), True)
 
     # Computing properties
     if isinstance(prop, EvaluationStrategyComposant):
