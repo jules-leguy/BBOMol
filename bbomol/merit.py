@@ -87,10 +87,10 @@ class Merit(EvaluationStrategy):
                 # Extracting SMILES of current individual
                 smi = ind.to_aromatic_smiles()
 
-                # Masking the extracting SMILES
+                # Masking the extracted SMILES
                 mask_smi = np.array(self.dataset_smiles_list) == smi
 
-                if np.sum(mask_smi) != 1:
+                if np.sum(mask_smi) < 1:
                     message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
                     with open("/home/LERIA/leguy_j/log.txt", "a") as f:
                         f.write(message + "\n")
