@@ -6,7 +6,7 @@ from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 
 from bbomol.bboalg import BBOAlg
 from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc
-from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit
+from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit, ProbabilityOfImprovementMerit
 from bbomol.model import GPRSurrogateModelWrapper
 from bbomol.objective import EvoMolEvaluationStrategyWrapper
 from bbomol.stop_criterion import KObjFunCallsFunctionStopCriterion
@@ -46,18 +46,18 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
     explicit_merit_optim_parameters = {
         "merit_type": input_merit_optim_parameters[
             "merit_type"] if "merit_type" in input_merit_optim_parameters else "EI",
-        "merit_EI_xi": input_merit_optim_parameters[
-            "merit_EI_xi"] if "merit_EI_xi" in input_merit_optim_parameters else 0.01,
+        # For "merit_xi" parameter, accepting both "merit_EI_xi" and "merit_xi" keys for compatibility reasons.
+        "merit_xi": input_merit_optim_parameters["merit_xi"] if "merit_xi" in input_merit_optim_parameters else input_merit_optim_parameters["merit_EI_xi"] if "merit_EI_xi" in input_merit_optim_parameters else 0.01,
         "evomol_parameters": input_merit_optim_parameters[
             "evomol_parameters"] if "evomol_parameters" in input_merit_optim_parameters else {
-                "optimization_parameters": {
-                    "max_steps": 10,
-                },
-                "action_space_parameters": {
-                    "max_heavy_atoms": 9,
-                    "atoms": "C,N,O,F"
-                }
+            "optimization_parameters": {
+                "max_steps": 10,
             },
+            "action_space_parameters": {
+                "max_heavy_atoms": 9,
+                "atoms": "C,N,O,F"
+            }
+        },
         "init_pop_size": input_merit_optim_parameters[
             "init_pop_size"] if "init_pop_size" in input_merit_optim_parameters else 10,
         "n_merit_optim_restarts": input_merit_optim_parameters[
@@ -66,8 +66,10 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
             "n_best_retrieved"] if "n_best_retrieved" in input_merit_optim_parameters else 1,
         "init_pop_strategy": input_merit_optim_parameters[
             "init_pop_strategy"] if "init_pop_strategy" in input_merit_optim_parameters else "random_weighted",
-        "noise_based": input_merit_optim_parameters["noise_based"] if "noise_based" in input_merit_optim_parameters else False,
-        "init_pop_zero_EI": input_merit_optim_parameters["init_pop_zero_EI"] if "init_pop_zero_EI" in input_merit_optim_parameters else True
+        "noise_based": input_merit_optim_parameters[
+            "noise_based"] if "noise_based" in input_merit_optim_parameters else False,
+        "init_pop_zero_EI": input_merit_optim_parameters[
+            "init_pop_zero_EI"] if "init_pop_zero_EI" in input_merit_optim_parameters else True
     }
 
     for parameter in input_merit_optim_parameters:
@@ -256,9 +258,14 @@ def _parse_merit_function(merit_optim_explicit_parameters, descriptor, surrogate
     """
     if merit_optim_explicit_parameters["merit_type"] == "EI":
         return ExpectedImprovementMerit(descriptor=descriptor, surrogate=surrogate, pipeline=None,
-                                        xi=merit_optim_explicit_parameters["merit_EI_xi"],
+                                        xi=merit_optim_explicit_parameters["merit_xi"],
                                         noise_based=merit_optim_explicit_parameters["noise_based"],
                                         init_pop_zero_EI=merit_optim_explicit_parameters["init_pop_zero_EI"])
+    elif merit_optim_explicit_parameters["merit_type"] == "POI":
+        return ProbabilityOfImprovementMerit(descriptor=descriptor, surrogate=surrogate, pipeline=None,
+                                             xi=merit_optim_explicit_parameters["merit_xi"],
+                                             noise_based=merit_optim_explicit_parameters["noise_based"],
+                                             init_pop_zero_EI=merit_optim_explicit_parameters["init_pop_zero_EI"])
     elif merit_optim_explicit_parameters["merit_type"] == "surrogate":
         return SurrogateValueMerit(descriptor=descriptor, pipeline=None, surrogate=surrogate)
 

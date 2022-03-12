@@ -112,10 +112,11 @@ independently ("off").
 The ```"merit_optim_parameters"``` attribute is used to describe the merit function and the parameters of its 
 evolutionary optimization. It can be set with a dictionary containing the following entries.
 
-* ```"merit_type"``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), or 
-the surrogate function directly ("surrogate").
-* ```"merit_EI_xi"``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
-of the expected improvement (**0.01**). This parameter is only interpreted if ```"merit_type"``` is set to "EI".
+* ```"merit_type"``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), 
+the probability of improvement ("POI") or the surrogate function directly ("surrogate").
+* ```"merit_xi"``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
+of the expected improvement or probability of improvement (**0.01**). This parameter is only interpreted if 
+```"merit_type"``` is set to "EI" or "POI".
 * ```"evomol_parameters"``` : dictionary describing the parameters for the evolutionary optimization of the merit 
 function, using the [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) algorithm. See the relevant section in 
 [EvoMol documentation](https://github.com/jules-leguy/EvoMol#search-space). The ```"action_space_parameters"```
