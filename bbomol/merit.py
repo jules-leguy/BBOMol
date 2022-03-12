@@ -90,6 +90,11 @@ class Merit(EvaluationStrategy):
                 # Masking the extracting SMILES
                 mask_smi = np.array(self.dataset_smiles_list) == smi
 
+                if np.sum(mask_smi) != 1:
+                    message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
+                    with open("/home/LERIA/leguy_j/log.txt", "a") as f:
+                        f.write(message + "\n")
+
                 # Extracting the transformed descriptors of given SMILES
                 # Using [:1] to select only the first occurrence (in case the smiles has several occurrences in the
                 # dataset)
