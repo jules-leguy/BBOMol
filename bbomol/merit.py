@@ -96,9 +96,9 @@ class Merit(EvaluationStrategy):
                 # Masking the extracted SMILES
                 mask_smi = np.array(dataset_smiles_list) == smi
 
-                if np.sum(mask_smi) <= 1:
+                if np.sum(mask_smi) < 1:
                     message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
-                    with open("/home/jleguy/log.txt", "a") as f:
+                    with open("/home/LERIA/leguy_j/log.txt", "a") as f:
                         f.write(message + "\n")
 
                 # Extracting the transformed descriptors of given SMILES
