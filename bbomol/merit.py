@@ -1,6 +1,9 @@
 import time
 from abc import abstractmethod
 
+from evomol.molgraphops.molgraph import MolGraph
+from rdkit.Chem import MolToSmiles, MolFromSmiles
+
 from .bboalg import compute_descriptors
 from evomol.evaluation import EvaluationStrategy
 import numpy as np
@@ -71,7 +74,7 @@ class Merit(EvaluationStrategy):
     def compute_record_scores_init_pop(self, population):
         """
         Computation of the scores of all individuals in EvoMol population at initialization.
-        This method is overriden because descriptors of the individuals of the population were already computed
+        This method is overridden because descriptors of the individuals of the population were already computed
         during the BBOAlg surrogate training.
         :param population:
         :return:
@@ -79,6 +82,9 @@ class Merit(EvaluationStrategy):
 
         self.scores = []
         self.comput_time = []
+
+        dataset_smiles_list = [MolGraph(MolFromSmiles(smi)).to_aromatic_smiles() for smi in self.dataset_smiles_list]
+
         for idx, ind in enumerate(population):
             if ind is not None:
 
@@ -88,11 +94,11 @@ class Merit(EvaluationStrategy):
                 smi = ind.to_aromatic_smiles()
 
                 # Masking the extracted SMILES
-                mask_smi = np.array(self.dataset_smiles_list) == smi
+                mask_smi = np.array(dataset_smiles_list) == smi
 
-                if np.sum(mask_smi) < 1:
+                if np.sum(mask_smi) <= 1:
                     message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
-                    with open("/home/LERIA/leguy_j/log.txt", "a") as f:
+                    with open("/home/jleguy/log.txt", "a") as f:
                         f.write(message + "\n")
 
                 # Extracting the transformed descriptors of given SMILES
