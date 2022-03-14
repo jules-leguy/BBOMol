@@ -83,7 +83,7 @@ class Merit(EvaluationStrategy):
         self.scores = []
         self.comput_time = []
 
-        # dataset_smiles_list = [MolGraph(MolFromSmiles(smi)).to_aromatic_smiles() for smi in self.dataset_smiles_list]
+        dataset_smiles_list = [MolGraph(MolFromSmiles(smi)).to_aromatic_smiles() for smi in self.dataset_smiles_list]
 
         for idx, ind in enumerate(population):
             if ind is not None:
@@ -94,7 +94,7 @@ class Merit(EvaluationStrategy):
                 smi = ind.to_aromatic_smiles()
 
                 # Masking the extracted SMILES
-                mask_smi = np.array(self.dataset_smiles_list) == smi
+                mask_smi = np.array(dataset_smiles_list) == smi
 
                 if np.sum(mask_smi) < 1:
                     message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
