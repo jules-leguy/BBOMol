@@ -51,6 +51,8 @@ class Merit(EvaluationStrategy):
         :return:
         """
 
+        super().evaluate_individual(individual, to_replace_idx)
+
         X, smiles_list, success = compute_descriptors(smiles_list=[individual.to_aromatic_smiles()],
                                                       descriptor=self.descriptor, pipeline=self.pipeline,
                                                       apply_pipeline=True)
