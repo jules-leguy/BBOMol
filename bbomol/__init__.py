@@ -136,6 +136,7 @@ def _extract_explicit_surrogate_parameters(parameters_dict):
         "surrogate_parameters"] if "surrogate_parameters" in parameters_dict else {}
 
     explicit_surrogate_parameters = {
+        "max_train_size": input_surrogate_parameters["max_train_size"] if "max_train_size" in input_surrogate_parameters else float("inf"),
         "GPR_instance": input_surrogate_parameters[
             "GPR_instance"] if "GPR_instance" in input_surrogate_parameters else GaussianProcessRegressor(
             1.0 * RBF(1.0) + WhiteKernel(1.0), normalize_y=True),
@@ -271,7 +272,8 @@ def _parse_merit_function(merit_optim_explicit_parameters, descriptor, surrogate
 
 
 def _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameters, merit_optim_explicit_parameters,
-                            parallelization_explicit_parameters, desc, objective, merit_function, surrogate):
+                            parallelization_explicit_parameters, surrogate_explicit_parameters, desc, objective,
+                            merit_function, surrogate):
     """
     Creating bbomol.bboalg.BBOAlg instance matching all given parameters
     :param IO_explicit_parameters:
@@ -311,7 +313,8 @@ def _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameter
         results_path=IO_explicit_parameters["results_path"],
         n_jobs_merit_optim=parallelization_explicit_parameters["n_jobs_merit_optim_restarts"],
         save_surrogate_model=IO_explicit_parameters["save_surrogate_model"],
-        period_save=IO_explicit_parameters["save_n_steps"]
+        period_save=IO_explicit_parameters["save_n_steps"],
+        max_train_size=surrogate_explicit_parameters["max_train_size"]
     )
 
 
@@ -356,7 +359,8 @@ def run_optimization(parameters_dict):
     # Creating BBOAlg instance
     bboalg_instance = _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameters,
                                               merit_optim_explicit_parameters, parallelization_explicit_parameters,
-                                              desc, obj_function, merit_function, surrogate)
+                                              surrogate_explicit_parameters, desc, obj_function, merit_function,
+                                              surrogate)
 
     # Running algorithm
     bboalg_instance.run()

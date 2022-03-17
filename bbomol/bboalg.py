@@ -134,15 +134,15 @@ def run_evomol_merit_optimization(merit_function, results_path, evomol_parameter
 
     io_parameters_dict = evomol_parameters["io_parameters"] if "io_parameters" in evomol_parameters else {}
     io_parameters_dict.update(
-    {
-        "model_path": join(results_path, "EvoMol_optimization"),
-        "smiles_list_init": compute_evomol_init_pop(evomol_init_pop_strategy=evomol_init_pop_strategy,
-                                                    dataset_smiles=dataset_smiles, dataset_y=dataset_y,
-                                                    evomol_init_pop_size=evomol_init_pop_size),
-        "external_tabu_list": dataset_smiles,
-        "save_n_steps": 200,
-        "print_n_steps": 1
-    })
+        {
+            "model_path": join(results_path, "EvoMol_optimization"),
+            "smiles_list_init": compute_evomol_init_pop(evomol_init_pop_strategy=evomol_init_pop_strategy,
+                                                        dataset_smiles=dataset_smiles, dataset_y=dataset_y,
+                                                        evomol_init_pop_size=evomol_init_pop_size),
+            "external_tabu_list": dataset_smiles,
+            "save_n_steps": 200,
+            "print_n_steps": 1
+        })
 
     parameters = {
         "obj_function": merit_function,
@@ -166,10 +166,11 @@ class BBOAlg:
 
     def __init__(self, init_dataset_smiles, descriptor, objective, merit_function, surrogate, stop_criterion,
                  evomol_parameters, evomol_init_pop_size, n_evomol_runs, n_best_evomol_retrieved,
-                 evomol_init_pop_strategy, objective_init_pop=None, score_assigned_to_failed_solutions=None,
-                 results_path="BBO_results", n_jobs_merit_optim=1, pre_dispatch='2 * n_jobs', batch_size='auto',
-                 save_surrogate_model=False, period_compute_test_predictions=float("inf"), period_save=1,
-                 save_pred_test_values=False, test_dataset_smiles_dict=None, test_objectives_dict=None, pipeline=None):
+                 evomol_init_pop_strategy, max_train_size=float("inf"), objective_init_pop=None,
+                 score_assigned_to_failed_solutions=None, results_path="BBO_results", n_jobs_merit_optim=1,
+                 pre_dispatch='2 * n_jobs', batch_size='auto', save_surrogate_model=False,
+                 period_compute_test_predictions=float("inf"), period_save=1, save_pred_test_values=False,
+                 test_dataset_smiles_dict=None, test_objectives_dict=None, pipeline=None):
         """
         Main class performing BBO optimization.
         :param init_dataset_smiles: smiles list to be used as initial dataset
@@ -192,6 +193,9 @@ class BBOAlg:
         :param evomol_init_pop_strategy: strategy to initialize evomol population. "methane" : starting from methane
         molecule only. "best" : best objective values from dataset. "best_weighted": random selection from dataset
         weighted by objective function value. "random": uniform random selection from dataset.
+        :param max_train_size: maximum size of the training set for the surrogate. If there are more solutions than
+        this value in the dataset of solutions, then max_train_size solutions are drawn uniformly to form the training
+        dataset at each training (at the beginning of each step).
         :param objective_init_pop: bbo.objective.EvoMolEvaluationStrategyWrapper wrapping an EvoMol EvaluationStrategy
         instance to be used on initial population. If not, set as objective instance the objective parameter
         :param score_assigned_to_failed_solutions: if None then default behaviour : solutions which fail the descriptor
@@ -224,6 +228,7 @@ class BBOAlg:
         self.n_evomol_runs = n_evomol_runs
         self.n_best_evomol_retrieved = n_best_evomol_retrieved
         self.evomol_init_pop_strategy = evomol_init_pop_strategy
+        self.max_train_size = max_train_size
 
         self.results_path = results_path
         self.n_jobs_merit_optim = n_jobs_merit_optim
@@ -365,7 +370,7 @@ class BBOAlg:
             success_prediction, success_uncertainty = compute_surrogate_predictions(self.surrogate, success_desc_values)
         except ValueError:
             # No solution to be predicted
-            success_prediction, success_uncertainty = np.full((len(success_smiles), ), np.nan), \
+            success_prediction, success_uncertainty = np.full((len(success_smiles),), np.nan), \
                                                       np.full((len(success_smiles)), np.nan)
 
         # Initialization of surrogate prediction and uncertainty for failed solutions
@@ -381,16 +386,16 @@ class BBOAlg:
         # Computing the surrogate prediction and uncertainty for failed solutions that passed the descriptor computation
         try:
             failed_prediction[failed_solutions_passed_desc_among_failed_mask], \
-                failed_uncertainty[failed_solutions_passed_desc_among_failed_mask] = \
+            failed_uncertainty[failed_solutions_passed_desc_among_failed_mask] = \
                 compute_surrogate_predictions(self.surrogate, dataset_X[failed_solutions_passed_desc_among_all_mask])
         except ValueError:
             # No solution to be predicted
             pass
 
         return success_smiles, success_desc_values, success_obj_values, success_all_scores, \
-            success_obj_computation_times, success_int_mask, failed_smiles, failed_bool_mask, failed_desc_bool_mask,\
-            failed_obj_bool_mask, desc_comput_time, obj_comput_time, success_prediction, success_uncertainty, \
-            failed_prediction, failed_uncertainty
+               success_obj_computation_times, success_int_mask, failed_smiles, failed_bool_mask, failed_desc_bool_mask, \
+               failed_obj_bool_mask, desc_comput_time, obj_comput_time, success_prediction, success_uncertainty, \
+               failed_prediction, failed_uncertainty
 
     def initialize_stop_criterion(self):
         """
@@ -427,9 +432,9 @@ class BBOAlg:
 
         # Computing descriptors and objective function values of initial dataset
         success_dict["smiles"], success_dict["X"], success_dict["obj_value"], success_all_scores, \
-            success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask, \
-            failed_desc_bool_mask, failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
-            failed_prediction, failed_uncertainty = \
+        success_dict["success_obj_computation_time"], success_int_mask, failed_smiles_list, failed_bool_mask, \
+        failed_desc_bool_mask, failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
+        failed_prediction, failed_uncertainty = \
             self.compute_descriptors_surrogate_objective_values(input_smiles, objective)
 
         # Recording the other scores values
@@ -751,8 +756,24 @@ class BBOAlg:
                 else:
                     X_dataset_transformed = self.dataset_dict["X"]
 
+                # If the max train size option is set then selecting a subset of the dataset that is used for training
+                # during the current step
+                if self.max_train_size < float("inf") and self.max_train_size < len(X_dataset_transformed):
+
+                    # Drawing the mask of selected solutions
+                    selected_mask = np.random.choice(np.arange(len(X_dataset_transformed)), (self.max_train_size,),
+                                                     replace=False)
+
+                    # Selecting data (X input and y targets)
+                    actual_training_desc = X_dataset_transformed[selected_mask]
+                    actual_training_targets = self.dataset_dict["obj_value"][selected_mask]
+
+                else:
+                    actual_training_desc = X_dataset_transformed
+                    actual_training_targets = self.dataset_dict["obj_value"]
+
                 # Training surrogate model
-                self.surrogate.fit(X_dataset_transformed, self.dataset_dict["obj_value"])
+                self.surrogate.fit(actual_training_desc, actual_training_targets)
 
                 print("model fitted")
 
@@ -814,9 +835,9 @@ class BBOAlg:
 
                 # Computing descriptors and objective function values of new solutions
                 success_smiles, success_X, success_y, success_all_scores, success_obj_computation_times, \
-                    success_int_mask, failed_smiles_list, failed_bool_mask, failed_desc_bool_mask, \
-                    failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
-                    failed_prediction, failed_uncertainty = \
+                success_int_mask, failed_smiles_list, failed_bool_mask, failed_desc_bool_mask, \
+                failed_obj_bool_mask, time_desc, time_obj, success_prediction, success_uncertainty, \
+                failed_prediction, failed_uncertainty = \
                     self.compute_descriptors_surrogate_objective_values(results_smiles, objective=self.objective)
 
                 time_comput_desc_obj = time.time() - tstart_desc_obj_comput

@@ -78,6 +78,9 @@ that is used as a surrogate of the objective function. This includes the setting
 be set with a dictionary containing the following entries.
 * ```"GPR_instance"``` : instance of sklearn.gaussian_process.GaussianProcessRegressor (**default :** 
 ```GaussianProcessRegressor(1.0*RBF(1.0)+WhiteKernel(1.0), normalize_y=True)```)
+* ```"max_train_size"``` : maximum possible size of the surrogate training dataset. If more samples are available in the
+dataset of solutions (including solutions of design of experiments) then max_train_size samples are sampled uniformly
+before each training (at the beginning of each optimization step).
 * ```"descriptor"```: a dictionary that defines the descriptor to be used to represent the solutions. The ```"type"``` 
 attribute is used to select the descriptor, which can be configured using the following set of attributes.
   * ```"type"``` : name of the descriptor to be used.
