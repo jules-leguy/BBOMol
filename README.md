@@ -92,13 +92,14 @@ attribute is used to select the descriptor, which can be configured using the fo
 
 * *Parameter common to MBTR and SOAP*
   * ```"species"```: list of atomic symbols that can be represented (**["H", "C", "O", "N", "F"]**).
+* *Parameters common to Shingles and random vectors*
+  * ```"vect_size"```: size of the descriptor (**2000**).
 * *Parameters specific to MBTR (see 
 [DScribe documentation](https://singroup.github.io/dscribe/latest/tutorials/descriptors/mbtr.html))*
   * ```"atomic_numbers_n"```, ```"inverse_distances_n"```, ```"cosine_angles_n"```: number of bins to 
 respectively encode the atomic numbers (**10**), the interatomic distances (**25**) and interatomic angles (**25**).
 * *Parameters specific to the vector of shingles*
   * ```"lvl"``` : radius of the shingles (**1**).
-  * ```"vect_size"```: size of the descriptor (**2000**).
   * ```"count"``` : if False, the descriptor is a boolean vector that represents whether the i<sup>th</sup> shingle is 
 present in the molecule. If True, the descriptor is an integer vector that counts the number of occurrences of the 
 i<sup>th</sup> shingle in the molecule (**True**).
@@ -109,7 +110,10 @@ i<sup>th</sup> shingle in the molecule (**True**).
 harmonics (**6**).
   * ```"average"``` : whether to average all local environments (**"inner"**, "outer") or to consider the environments
 independently ("off").
-
+* *Parameters specific to the Gaussian random vector*
+  * ```"mu"``` : mean of the Gaussian distribution (**0**)
+  * ```"sigma"``` : standard deviation of the Gaussian distribution (**1**)
+  
 ### Merit optimization parameters
 
 The ```"merit_optim_parameters"``` attribute is used to describe the merit function and the parameters of its 

@@ -5,7 +5,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 
 from bbomol.bboalg import BBOAlg
-from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc
+from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc, RandomGaussianVectorDesc
 from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit, ProbabilityOfImprovementMerit
 from bbomol.model import GPRSurrogateModelWrapper
 from bbomol.objective import EvoMolEvaluationStrategyWrapper
@@ -121,6 +121,8 @@ def _extract_explicit_descriptor_parameters(descriptor_parameters_dict):
         "lvl": descriptor_parameters_dict["lvl"] if "lvl" in descriptor_parameters_dict else 1,
         "vect_size": descriptor_parameters_dict["vect_size"] if "vect_size" in descriptor_parameters_dict else 2000,
         "count": descriptor_parameters_dict["count"] if "count" in descriptor_parameters_dict else True,
+        "mu": descriptor_parameters_dict["mu"] if "mu" in descriptor_parameters_dict else 0,
+        "sigma": descriptor_parameters_dict["sigma"] if "sigma" in descriptor_parameters_dict else 1,
     }
 
     for parameter in descriptor_parameters_dict:
@@ -245,6 +247,12 @@ def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_pa
                         average=surrogate_explicit_parameters["descriptor"]["average"],
                         n_jobs=parallelization_explicit_parameters["n_jobs_desc_comput"],
                         MM_program=IO_explicit_parameters["MM_program"])
+
+    elif surrogate_explicit_parameters["descriptor"]["type"] == "random":
+
+        desc = RandomGaussianVectorDesc(mu=surrogate_explicit_parameters["descriptor"]["mu"],
+                                        sigma=surrogate_explicit_parameters["descriptor"]["sigma"],
+                                        vect_size=surrogate_explicit_parameters["descriptor"]["vect_size"])
 
     return desc
 
