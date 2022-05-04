@@ -1,3 +1,4 @@
+import io
 import itertools
 from abc import ABC, abstractmethod
 from os.path import join
@@ -7,6 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from IPython.display import display, HTML
+from PIL import Image
 from evomol import EvaluationStrategyComposant
 from evomol.evaluation import EvaluationError
 from evomol.molgraphops.molgraph import MolGraph
@@ -775,6 +777,14 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
 
         # Saving image
         if output_dir_path is not None:
+
+            # Making sure the image is a PIL.Image even if launched from a notebook
+            if not isinstance(img, Image.Image):
+                buf = io.BytesIO()
+                buf.write(img.data)
+                buf.seek(0)
+                img = Image.open(buf)
+
             with open(join(output_dir_path, "best_sol_" + str(properties) + "_" + exp_name_display + ".png"),
                       "wb") as f:
                 img.save(f, "png")
