@@ -23,6 +23,8 @@ figsize = (7, 5)
 dpi = 600
 linestyles = ['solid', 'dashed', 'dotted', 'dashdot', (0, (5, 10)), (0, (3, 10, 1, 10)), (0, (1, 10))]
 markers = ['s', '^', 'o', '+', 'x']
+save_show = True
+init_figure = True
 
 
 class PlotFigureTemplate(ABC):
@@ -73,20 +75,25 @@ class PlotFigureTemplate(ABC):
 
     def plot(self, results_dict):
 
+        output = []
+
         # Initialization of the plot and computation of experiments keys to be plotted
         self._init_plot(results_dict)
 
         # Plotting all experiments
         for i, experiment_key in enumerate(self.exp_list_plot):
-            self._plot_experiment(results_dict, experiment_key, i)
+            output += [self._plot_experiment(results_dict, experiment_key, i)]
 
         # Saving and showing plot
         self._finish_plot()
 
+        return output
+
     def _init_plot(self, results_dict):
 
         # Setting figure size
-        plt.figure(figsize=figsize)
+        if init_figure:
+            plt.figure(figsize=figsize)
 
         # Setting figure title
         if self.plot_title is not None:
@@ -114,13 +121,14 @@ class PlotFigureTemplate(ABC):
         if self.plot_legend:
             plt.legend(loc=self.legend_loc)
 
-        # Saving the plot
-        if self.output_dir_path is not None:
-            plt.savefig(join(self.output_dir_path, self.plot_type_name + "_" + self.plot_name) + ".png", dpi=dpi,
-                        bbox_inches='tight')
+        if save_show:
+            # Saving the plot
+            if self.output_dir_path is not None:
+                plt.savefig(join(self.output_dir_path, self.plot_type_name + "_" + self.plot_name) + ".png", dpi=dpi,
+                            bbox_inches='tight')
 
-        # Displaying the plot
-        plt.show()
+            # Displaying the plot
+            plt.show()
 
     def _plot_experiment(self, results_dict, experiment_key, experiment_idx):
         """
@@ -146,7 +154,7 @@ class PlotFigureTemplate(ABC):
             marker = markers[self.classes_markers[experiment_idx]]
 
         # Performing actual plot
-        self._plot_experiment_content(results_dict, experiment_key, linestyle, marker)
+        return self._plot_experiment_content(results_dict, experiment_key, linestyle, marker)
 
     @abstractmethod
     def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
@@ -328,6 +336,8 @@ class BestSoFarPlot(PlotFigureTemplate):
             plt.plot([min(max_calls_list)], [best_so_far_matrix.mean(axis=0)[min(max_calls_list) - 1]],
                      marker="o", color=plt.gca().lines[-1].get_color())
 
+        return experiment_key, obj_calls, best_so_far_matrix.mean(axis=0)
+
 
 def plot_best_so_far(results_dict, prop="obj_value", metric="mean", plot_last_common_data_all_runs=False,
                      exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None, classes_dashes=None,
@@ -363,11 +373,11 @@ def plot_best_so_far(results_dict, prop="obj_value", metric="mean", plot_last_co
     :return:
     """
 
-    BestSoFarPlot(prop=prop, metric=metric, plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
-                  labels_dict=labels_dict, classes_dashes=classes_dashes, classes_markers=classes_markers, xlim=xlim,
-                  ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc, output_dir_path=output_dir_path,
-                  plot_legend=plot_legend,
-                  plot_last_common_data_all_runs=plot_last_common_data_all_runs).plot(results_dict)
+    return BestSoFarPlot(prop=prop, metric=metric, plot_title=plot_title, plot_name=plot_name,
+                         exp_list_plot=exp_list_plot, labels_dict=labels_dict, classes_dashes=classes_dashes,
+                         classes_markers=classes_markers, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                         legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend,
+                         plot_last_common_data_all_runs=plot_last_common_data_all_runs).plot(results_dict)
 
 
 class PropertyDistributionPlot(PlotFigureTemplate):
@@ -586,14 +596,14 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
 
         # Computing ERT based on calls
         if xunit == "calls":
-            ERT_vect = compute_ERT(
+            ERT_vect, n_success_vect = compute_ERT(
                 obj_calls_list=results_dict[experiment_name]["dataset_success_n_calls"],
                 obj_values_list=results_dict[experiment_name]["dataset_success_obj_value"],
                 targets=ert_targets
             )
         # Computing ERT based on time
         elif xunit == "time":
-            ERT_vect = compute_ERT_timestamps(
+            ERT_vect, n_success_vect = compute_ERT_timestamps(
                 timestamps_list=results_dict[experiment_name]["timestamps"],
                 obj_values_list=results_dict[experiment_name]["best_scores_timestamps"],
                 targets=ert_targets,
@@ -602,7 +612,8 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
 
         ERT_dict["Experiment"].append(display_experiment_name)
         for j in range(len(ERT_vect)):
-            ERT_dict[output_keys[j + 1]].append(ERT_vect[j])
+            ERT_dict[output_keys[j + 1]].append(str(ERT_vect[j]) + " (" + str(n_success_vect[j]) + ")")
+
 
     # Displaying resulting array
     df = pd.DataFrame.from_dict(ERT_dict)
