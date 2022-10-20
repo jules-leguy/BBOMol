@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='BBOMol',
-      version='0.1',
+      version='0.2',
       description='Surrogate-based black-box optimization method for molecular properties',
       url='https://github.com/jules-leguy/BBOMol',
       author='Jules Leguy',
