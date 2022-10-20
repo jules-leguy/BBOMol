@@ -172,8 +172,8 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         success_dataset_n_calls.append(int(n_calls))
 
                         # Extracting data in additional columns
-                        for j in range(4, row_size):
-                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]].append(row[j])
+                        for j in range(5 if contains_success_col else 4, row_size):
+                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]].append(float(row[j]))
 
                     else:
                         failed_step.append(int(step))
@@ -183,8 +183,8 @@ def extract_BBO_dataset(bbo_exp_root, include_dataset_init_step=False):
                         failed_n_calls.append(int(n_calls))
 
                         # Extracting data in additional columns
-                        for j in range(4, row_size):
-                            additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]].append(row[j])
+                        for j in range(5 if contains_success_col else 4, row_size):
+                            additional_data_dict_dataset["dataset_failed_" + row_idx_to_key[j]].append(float(row[j]))
 
     # Extracting data in failed_smiles.csv file if exists
     if exists(join(bbo_exp_root, "failed_dataset.csv")):
@@ -362,10 +362,12 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
         "dataset_success_smiles": [],
         "dataset_success_obj_value": [],
         "dataset_success_n_calls": [],
+        "dataset_success_success_obj_computation_time": [],
         "dataset_failed_step": [],
         "dataset_failed_smiles": [],
         "dataset_failed_objective": [],
-        "dataset_failed_n_calls": []
+        "dataset_failed_n_calls": [],
+        "dataset_failed_success_obj_computation_time": []
     }
 
     # Initialization of the variable that represents whether the data contains information about solutions that failed
@@ -380,15 +382,25 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
             # Checking if file contains information about the failed solutions
             if i == 0:
                 contains_failed_obj_data = "success_obj_computation" in row
+                contains_time_obj_computation = "obj_computation_time" in row
 
                 # Extracting additional columns
                 row_size = len(row)
-                row_idx_to_key = {}
+                row_idx_to_key_additional_data = {}
                 additional_data_dict_dataset = {}
-                for j in range(6, row_size):
-                    row_idx_to_key[j] = row[j]
-                    additional_data_dict_dataset["dataset_success_" + row_idx_to_key[j]] = []
+                for j in range(row_size):
 
+                    if row[j] not in ["step", "SMILES", "obj_calls", "obj_value", "improver",
+                                      "success_obj_computation", "obj_computation_time"]:
+
+                        # If the key is met for the first time
+                        if row[j] not in row_idx_to_key_additional_data.values():
+                            row_idx_to_key_additional_data[j] = row[j]
+                            additional_data_dict_dataset["dataset_success_" + row_idx_to_key_additional_data[j]] = []
+
+                        # If the key has already been met then the column is a duplicate a must be ignored
+                        else:
+                            row_idx_to_key_additional_data[j] = None
             else:
 
                 # Extracting step value
@@ -407,15 +419,22 @@ def extract_evomol_experiment_data(evomol_exp_root, include_dataset_init_step=Fa
                     output_dict["dataset_" + success_or_failed_key + "_step"].append(step)
                     output_dict["dataset_" + success_or_failed_key + "_smiles"].append(row[1])
                     output_dict["dataset_" + success_or_failed_key + "_n_calls"].append(int(row[2]))
+                    output_dict["dataset_" + success_or_failed_key + "_success_obj_computation_time"].append(float(row[6])) if contains_time_obj_computation else None
 
                     # Data specific to success
                     if success_or_failed_key == "success":
                         output_dict["dataset_success_obj_value"].append(float(row[3]))
 
                         # Extracting data in additional columns
-                        for j in range(6, row_size):
-                            additional_data_dict_dataset[
-                                "dataset_success_" + row_idx_to_key[j]].append(row[j])
+                        for j in range(row_size):
+
+                            # Checking that the current row is an additional row
+                            if j in row_idx_to_key_additional_data:
+
+                                # Saving the data for current column if it not a duplicate
+                                if row_idx_to_key_additional_data[j] is not None:
+                                    additional_data_dict_dataset[
+                                        "dataset_success_" + row_idx_to_key_additional_data[j]].append(row[j])
 
                     # Data specific to failure
                     if success_or_failed_key == "failed":

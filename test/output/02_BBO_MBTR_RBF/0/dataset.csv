@@ -1,0 +1,2 @@
+step,smiles,obj_value,n_obj_calls,success,success_obj_computation_time,homo,lumo,gap
+0,C,-10.581147076692499,0,True,1.9735581874847412,-10.581147076692499,3.9701410787950002,14.5512881554875

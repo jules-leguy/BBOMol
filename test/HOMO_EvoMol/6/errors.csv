@@ -1,0 +1,90 @@
+step,error
+0,DFT caused exception MM error (Evaluation error) (Evaluation error)C RmA-0 (Evaluation error)
+0,No more individual to be mutated
+0,No replacement occured
+1,DFT caused exception MM error (Evaluation error) (Evaluation error)C RmA-0 (Evaluation error)
+1,No more individual to be mutated
+1,No replacement occured
+2,DFT caused exception MM error (Evaluation error) (Evaluation error)C RmA-0 (Evaluation error)
+2,No more individual to be mutated
+2,No replacement occured
+3,No more individual to be mutated
+4,DFT caused exception MM error (Evaluation error) (Evaluation error)N RmA-0 (Evaluation error)
+4,DFT caused exception MM error (Evaluation error) (Evaluation error)C RmA-0 (Evaluation error)
+4,No more individual to be mutated
+4,No replacement occured
+5,No more individual to be mutated
+6,DFT caused exception MM error (Evaluation error) (Evaluation error)N RmA-0 (Evaluation error)
+6,No more individual to be mutated
+7,DFT caused exception MM error (Evaluation error) (Evaluation error)C RmA-0 (Evaluation error)
+7,No more individual to be mutated
+8,DFT caused exception MM error (Evaluation error) (Evaluation error)N RmA-0 (Evaluation error)
+8,DFT caused exception MM error (Evaluation error) (Evaluation error)C=N AddA-7 (Evaluation error)
+9,DFT caused exception DFT error : Different SMILES : N=N [NH][NH] (Evaluation error) (Evaluation error)NN ChB-72 (Evaluation error)
+10,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-73 (Evaluation error)
+10,DFT caused exception MM error (Evaluation error) (Evaluation error)N RmA-0 (Evaluation error)
+10,DFT caused exception MM error (Evaluation error) (Evaluation error)CC=N Sub-5 (Evaluation error)
+11,DFT caused exception MM error (Evaluation error) (Evaluation error)N Sub-2_RmA-0 (Evaluation error)
+11,DFT caused exception MM error (Evaluation error) (Evaluation error)NN AddA-5_ChB-72 (Evaluation error)
+12,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC ChB-80_Sub-5 (Evaluation error)
+12,DFT caused exception MM error (Evaluation error) (Evaluation error)CN RmA-0_RmA-0 (Evaluation error)
+12,DFT caused exception MM error (Evaluation error) (Evaluation error)CCN ChB-72 (Evaluation error)
+12,DFT caused exception MM error (Evaluation error) (Evaluation error)N RmA-0 (Evaluation error)
+12,"DFT caused exception Python argument types in
+    rdkit.Chem.rdmolops.RemoveStereochemistry(NoneType)
+did not match C++ signature:
+    RemoveStereochemistry(RDKit::ROMol {lvalue} mol) (Evaluation error)NC(N)O ChB-87 (Evaluation error)"
+13,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC ChB-116 (Evaluation error)
+13,DFT caused exception MM error (Evaluation error) (Evaluation error)NNN ChB-72_AddA-7 (Evaluation error)
+13,No improver found
+14,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-80_MoveFG-72 (Evaluation error)
+14,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC AddA-4_ChB-117 (Evaluation error)
+15,DFT caused exception MM error (Evaluation error) (Evaluation error)CCNCCO ChB-76_MoveFG-30 (Evaluation error)
+15,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1CCN1 CutA-3_ChB-72 (Evaluation error)
+15,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC ChB-116_InsA-0 (Evaluation error)
+15,DFT caused exception MM error (Evaluation error) (Evaluation error)CCNCN ChB-88_CutA-3 (Evaluation error)
+15,DFT caused exception MM error (Evaluation error) (Evaluation error)NNN ChB-73 (Evaluation error)
+16,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-72 (Evaluation error)
+16,DFT caused exception DFT error : Different SMILES : CC1=NO1 CC([N])=O (Evaluation error) (Evaluation error)CCNN Sub-6_ChB-87 (Evaluation error)
+17,DFT caused exception MM error (Evaluation error) (Evaluation error)NCC1C=C(N)CN1 ChB-51 (Evaluation error)
+18,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-73 (Evaluation error)
+19,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 RmA-4 (Evaluation error)
+19,DFT caused exception MM error (Evaluation error) (Evaluation error)CC=C(C)N ChB-88 (Evaluation error)
+19,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-72_ChB-37 (Evaluation error)
+20,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 ChB-53_InsA-15 (Evaluation error)
+20,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CCC1 ChB-80 (Evaluation error)
+20,DFT caused exception MM error (Evaluation error) (Evaluation error)C=C(C)N ChB-72 (Evaluation error)
+20,DFT caused exception MM error (Evaluation error) (Evaluation error)CNN ChB-73_InsA-0 (Evaluation error)
+21,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 Sub-1 (Evaluation error)
+22,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)C2NC2(O)C1 ChB-96 (Evaluation error)
+22,DFT caused exception MM error (Evaluation error) (Evaluation error)CC=C(C)N ChB-80_Sub-19 (Evaluation error)
+22,DFT caused exception MM error (Evaluation error) (Evaluation error)NCC1CC=C(N)NN1 ChB-95 (Evaluation error)
+22,DFT caused exception MM error (Evaluation error) (Evaluation error)CC=CN ChB-87_AddA-7 (Evaluation error)
+22,DFT caused exception DFT error : Error during OPT for CC1=C(N)CC1 (Evaluation error) (Evaluation error)NC1=CCC1 InsA-15_MoveFG-153 (Evaluation error)
+22,DFT caused exception MM error (Evaluation error) (Evaluation error)CC1C=C(N)CN1 MoveFG-165_ChB-45 (Evaluation error)
+23,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(F)CC(O)CN1 RmA-7 (Evaluation error)
+24,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 ChB-37_CutA-5 (Evaluation error)
+24,DFT caused exception MM error (Evaluation error) (Evaluation error)CC(N)=CCCN Sub-22_Sub-5 (Evaluation error)
+24,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(F)CC(O)CN1 Sub-26_ChB-49 (Evaluation error)
+25,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)CNCC1 CutA-1_ChB-83 (Evaluation error)
+26,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 ChB-89 (Evaluation error)
+26,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(O)CCN1 AddA-24_ChB-45 (Evaluation error)
+27,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNC(O)N1 Sub-1 (Evaluation error)
+27,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)NCC(O)C1 RmA-7_AddA-14 (Evaluation error)
+27,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)C(O)CC1 CutA-1_ChB-93 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNC(N)C(O)=C1 ChB-67 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNCC1 Sub-1 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)CCC(N)=CN ChB-89_Sub-21 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNC(N)C(O)C1 ChB-54 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)NCC(O)C1 ChB-107 (Evaluation error)
+28,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC1=CNCN1 Sub-27_RmA-2 (Evaluation error)
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)CC1CCC(N)=CN1 ChB-53_InsA-15 (Evaluation error)
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNC(O)N1 RmA-6 (Evaluation error)
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)CC1CCCC(N)=CN1 RmA-7 (Evaluation error)
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=CNC(N)C(O)C1 ChB-52_CutA-7 (Evaluation error)
+29,"DFT caused exception Python argument types in
+    rdkit.Chem.rdmolops.RemoveStereochemistry(NoneType)
+did not match C++ signature:
+    RemoveStereochemistry(RDKit::ROMol {lvalue} mol) (Evaluation error)CC1CC(O)=C(N)N1 ChB-58_Sub-26 (Evaluation error)"
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)NC1=C(N)NCC(O)C1 ChB-97 (Evaluation error)
+29,DFT caused exception MM error (Evaluation error) (Evaluation error)CNC1=CNCN1 ChB-66 (Evaluation error)

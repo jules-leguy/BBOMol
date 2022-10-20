@@ -1,3 +1,4 @@
+import io
 import itertools
 from abc import ABC, abstractmethod
 from os.path import join
@@ -7,6 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from IPython.display import display, HTML
+from PIL import Image
 from evomol import EvaluationStrategyComposant
 from evomol.evaluation import EvaluationError
 from evomol.molgraphops.molgraph import MolGraph
@@ -21,6 +23,8 @@ figsize = (7, 5)
 dpi = 600
 linestyles = ['solid', 'dashed', 'dotted', 'dashdot', (0, (5, 10)), (0, (3, 10, 1, 10)), (0, (1, 10))]
 markers = ['s', '^', 'o', '+', 'x']
+save_show = True
+init_figure = True
 
 
 class PlotFigureTemplate(ABC):
@@ -71,20 +75,25 @@ class PlotFigureTemplate(ABC):
 
     def plot(self, results_dict):
 
+        output = []
+
         # Initialization of the plot and computation of experiments keys to be plotted
         self._init_plot(results_dict)
 
         # Plotting all experiments
         for i, experiment_key in enumerate(self.exp_list_plot):
-            self._plot_experiment(results_dict, experiment_key, i)
+            output += [self._plot_experiment(results_dict, experiment_key, i)]
 
         # Saving and showing plot
         self._finish_plot()
 
+        return output
+
     def _init_plot(self, results_dict):
 
         # Setting figure size
-        plt.figure(figsize=figsize)
+        if init_figure:
+            plt.figure(figsize=figsize)
 
         # Setting figure title
         if self.plot_title is not None:
@@ -112,13 +121,14 @@ class PlotFigureTemplate(ABC):
         if self.plot_legend:
             plt.legend(loc=self.legend_loc)
 
-        # Saving the plot
-        if self.output_dir_path is not None:
-            plt.savefig(join(self.output_dir_path, self.plot_type_name + "_" + self.plot_name) + ".png", dpi=dpi,
-                        bbox_inches='tight')
+        if save_show:
+            # Saving the plot
+            if self.output_dir_path is not None:
+                plt.savefig(join(self.output_dir_path, self.plot_type_name + "_" + self.plot_name) + ".png", dpi=dpi,
+                            bbox_inches='tight')
 
-        # Displaying the plot
-        plt.show()
+            # Displaying the plot
+            plt.show()
 
     def _plot_experiment(self, results_dict, experiment_key, experiment_idx):
         """
@@ -144,7 +154,7 @@ class PlotFigureTemplate(ABC):
             marker = markers[self.classes_markers[experiment_idx]]
 
         # Performing actual plot
-        self._plot_experiment_content(results_dict, experiment_key, linestyle, marker)
+        return self._plot_experiment_content(results_dict, experiment_key, linestyle, marker)
 
     @abstractmethod
     def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
@@ -158,85 +168,6 @@ class PlotFigureTemplate(ABC):
         """
         return self.labels_dict[
             experiment_key] if self.labels_dict is not None and self.labels_dict and experiment_key in self.labels_dict else experiment_key
-
-
-class BestSoFarPlot(PlotFigureTemplate):
-    """
-    Plotting the aggregation of the best solution so far across different runs of several experiments.
-    It is possible to plot the mean of the best and/or the min-max interval.
-    """
-
-    def __init__(self, metric="mean", plot_title=None, plot_name=None, exp_list_plot=None, labels_dict=None,
-                 classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None, ylabel=None,
-                 legend_loc="lower right", output_dir_path=None, plot_legend=True):
-        """
-        :param metric: str key describing whether the mean best value ("mean"), the min and max best value ("min_max")
-        or both ("both") are plotted
-        :param legend_loc: str location of the legend (default : "lower right")
-        """
-
-        super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
-                         labels_dict=labels_dict, classes_dashes=classes_dashes, classes_markers=classes_markers,
-                         xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc,
-                         output_dir_path=output_dir_path, plot_legend=plot_legend)
-
-        self.metric = metric
-        self.xlabel_default = "Number of calls to the objective function"
-        self.ylabel_default = "Best value"
-        self.plot_type_name = "best_so_far_" + self.metric
-
-    def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
-
-        max_obj_calls = np.max([np.max(obj_calls_vect) for obj_calls_vect in results_dict[
-            experiment_key]["dataset_success_n_calls"]])
-
-        obj_calls, best_so_far_matrix = compute_best_so_far_matrix(
-            results_dict[experiment_key]["dataset_success_n_calls"],
-            results_dict[experiment_key]["dataset_success_obj_value"],
-            max_obj_calls=max_obj_calls
-        )
-
-        if self.metric == "mean" or self.metric == "both":
-            plt.plot(obj_calls, best_so_far_matrix.mean(axis=0), label=self.get_display_experiment_name(experiment_key),
-                     linestyle=linestyle, marker=marker, markevery=100)
-
-        if self.metric == "min_max" or self.metric == "both":
-            plt.fill_between(obj_calls, best_so_far_matrix.min(axis=0), best_so_far_matrix.max(axis=0), alpha=0.2)
-
-
-def plot_best_so_far(results_dict, metric="mean", exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None,
-                     classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None, ylabel=None,
-                     legend_loc="lower right", output_dir_path=None, plot_legend=True):
-    """
-    Plotting the aggregation of the best solution so far across different runs of several experiments.
-    It is possible to plot the mean of the best and/or the min-max interval.
-
-    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
-    :param metric: whether to plot the average of the best solutions ("mean"), or the min-max interval of the solutions
-    ("min_max") of both ("both").
-    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
-    experiments of results_dict are plotted.
-    :param plot_title: title to be displayed on the plot (if None : "").
-    :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
-    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as name)
-    :param classes_dashes: integer list that specifies the dashes class of each experiment (if None all are of
-    class 0). Must match the size of exp_list_plot if defined.
-    :param classes_markers: integer list that specifies the markers class of each experiment (if None all are of
-    class 0). Must match the size of exp_list_plot if defined.
-    :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
-    :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
-    :param xlabel : label of the x axis (if None, determined automatically)
-    :param ylabel : label of the y axis (if None, determined automatically)
-    :param legend_loc: str key that describes the location of the legend (if None, default is "lower right").
-    :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
-    :param plot_legend: whether to plot the legend (default True).
-    :return:
-    """
-
-    BestSoFarPlot(metric=metric, plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
-                  labels_dict=labels_dict, classes_dashes=classes_dashes, classes_markers=classes_markers, xlim=xlim,
-                  ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc, output_dir_path=output_dir_path,
-                  plot_legend=plot_legend).plot(results_dict)
 
 
 class ECDFPlot(PlotFigureTemplate):
@@ -287,14 +218,16 @@ class ECDFPlot(PlotFigureTemplate):
                 obj_values_list=results_dict[experiment_key]["dataset_success_obj_value"],
                 targets=self.ecdf_targets
             )
+        else:
+            obj_calls, ecdf_vect = None, None
 
         plt.plot(obj_calls, ecdf_vect, label=self.get_display_experiment_name(experiment_key), linestyle=linestyle,
                  marker=marker, markevery=100)
 
 
-def plot_ecdf(results_dict, ecdf_targets, xunit="calls", exp_list_plot=None, plot_title=None, plot_name=None,
-              labels_dict=None, classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None,
-              ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True):
+def plot_ecdf(results_dict, ecdf_targets, xunit="calls", exp_list_plot=None, plot_title=None,
+              plot_name=None, labels_dict=None, classes_dashes=None, classes_markers=None, xlim=None, ylim=None,
+              xlabel=None, ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True):
     """
     Plotting the Estimated cumulative distribution function (ECDF).
     It is possible to plot the ECDF with respect to the calls to the objective function or to the time.
@@ -330,6 +263,215 @@ def plot_ecdf(results_dict, ecdf_targets, xunit="calls", exp_list_plot=None, plo
              plot_name=plot_name, labels_dict=labels_dict, classes_dashes=classes_dashes,
              classes_markers=classes_markers, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc,
              output_dir_path=output_dir_path, plot_legend=plot_legend).plot(results_dict)
+
+
+class BestSoFarPlot(PlotFigureTemplate):
+    """
+    Plotting the aggregation of the best solution so far across different runs of several experiments.
+    It is possible to plot the mean of the best and/or the min-max interval.
+    """
+
+    def __init__(self, prop="obj_value", metric="mean", plot_title=None, plot_name=None, exp_list_plot=None,
+                 labels_dict=None, classes_dashes=None, classes_markers=None, xlim=None, ylim=None, xlabel=None,
+                 ylabel=None, legend_loc="lower right", output_dir_path=None, plot_legend=True,
+                 plot_last_common_data_all_runs=False):
+        """
+        :param prop: property to be represented. Can be either a string key in the dataset.csv file or an instance
+        of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
+        :param metric: str key describing whether the mean best value ("mean"), the min and max best value ("min_max")
+        or both ("both") are plotted
+        :param legend_loc: str location of the legend (default : "lower right")
+        :param plot_last_common_data_all_runs: whether to plot a point at the position of the last x value that was
+        shared across all runs (if this position differs).
+        """
+
+        super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
+                         labels_dict=labels_dict, classes_dashes=classes_dashes, classes_markers=classes_markers,
+                         xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel, legend_loc=legend_loc,
+                         output_dir_path=output_dir_path, plot_legend=plot_legend)
+
+        self.metric = metric
+        self.prop = prop
+        self.xlabel_default = "Number of calls to the objective function"
+        self.ylabel_default = "Best value"
+        self.plot_type_name = "best_so_far_" + self.metric
+        self.plot_last_common_data_all_runs = plot_last_common_data_all_runs
+
+    def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
+
+        max_obj_calls = np.max([np.max(obj_calls_vect) for obj_calls_vect in results_dict[
+            experiment_key]["dataset_success_n_calls"]])
+
+        # Extracting property values for each run
+        all_prop_values = []
+        for i in range(len(results_dict[experiment_key]["dataset_success_n_calls"])):
+            _, curr_run_property_values = _get_property_values(results_dict, experiment_key, i, self.prop)
+            all_prop_values.append(curr_run_property_values)
+
+        obj_calls, best_so_far_matrix = compute_best_so_far_matrix(
+            results_dict[experiment_key]["dataset_success_n_calls"],
+            all_prop_values,
+            max_obj_calls=max_obj_calls
+        )
+
+        if self.metric == "mean" or self.metric == "both":
+            p = plt.plot(obj_calls, best_so_far_matrix.mean(axis=0),
+                         label=self.get_display_experiment_name(experiment_key), linestyle=linestyle, marker=marker,
+                         markevery=100)
+
+        if self.metric == "min_max" or self.metric == "both":
+            p = plt.fill_between(obj_calls, best_so_far_matrix.min(axis=0), best_so_far_matrix.max(axis=0), alpha=0.2)
+
+        # Extracting the last number of calls for each run of the current experiment
+        max_calls_list = []
+        for i in range(len(results_dict[experiment_key]["dataset_success_n_calls"])):
+            curr_max_calls = max(results_dict[experiment_key]["dataset_success_n_calls"][i][-1],
+                                 results_dict[experiment_key]["dataset_failed_n_calls"][i][-1] if
+                                 len(results_dict[experiment_key]["dataset_failed_n_calls"][i]) > 0 else -float("inf"))
+            max_calls_list.append(curr_max_calls)
+
+        # If the experiment has several stops at different stages across the runs, marking the first of these stops
+        if self.plot_last_common_data_all_runs and min(max_calls_list) != max(max_calls_list) \
+           and min(max_calls_list) < self.xlim[1] if self.xlim is not None else True:
+            plt.plot([min(max_calls_list)], [best_so_far_matrix.mean(axis=0)[min(max_calls_list) - 1]],
+                     marker="o", color=plt.gca().lines[-1].get_color())
+
+        return experiment_key, obj_calls, best_so_far_matrix.mean(axis=0)
+
+
+def plot_best_so_far(results_dict, prop="obj_value", metric="mean", plot_last_common_data_all_runs=False,
+                     exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None, classes_dashes=None,
+                     classes_markers=None, xlim=None, ylim=None, xlabel=None, ylabel=None, legend_loc="lower right",
+                     output_dir_path=None, plot_legend=True):
+    """
+    Plotting the aggregation of the best solution so far across different runs of several experiments.
+    It is possible to plot the mean of the best and/or the min-max interval.
+
+    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
+    :param prop: property to be represented. Can be either a string key in the dataset.csv file or an instance
+    of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
+    :param metric: whether to plot the average of the best solutions ("mean"), or the min-max interval of the solutions
+    ("min_max") of both ("both").
+    :param plot_last_common_data_all_runs: whether to plot a point at the position of the last x value that was
+    shared across all runs (if this position differs).
+    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+    experiments of results_dict are plotted.
+    :param plot_title: title to be displayed on the plot (if None : "").
+    :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
+    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as name)
+    :param classes_dashes: integer list that specifies the dashes class of each experiment (if None all are of
+    class 0). Must match the size of exp_list_plot if defined.
+    :param classes_markers: integer list that specifies the markers class of each experiment (if None all are of
+    class 0). Must match the size of exp_list_plot if defined.
+    :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
+    :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
+    :param xlabel : label of the x axis (if None, determined automatically)
+    :param ylabel : label of the y axis (if None, determined automatically)
+    :param legend_loc: str key that describes the location of the legend (if None, default is "lower right").
+    :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
+    :param plot_legend: whether to plot the legend (default True).
+    :return:
+    """
+
+    return BestSoFarPlot(prop=prop, metric=metric, plot_title=plot_title, plot_name=plot_name,
+                         exp_list_plot=exp_list_plot, labels_dict=labels_dict, classes_dashes=classes_dashes,
+                         classes_markers=classes_markers, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                         legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend,
+                         plot_last_common_data_all_runs=plot_last_common_data_all_runs).plot(results_dict)
+
+
+class PropertyDistributionPlot(PlotFigureTemplate):
+
+    def __init__(self, prop="obj_value", run_idx=0, calls_ranges=None, bins_range=None, plot_title=None,
+                 plot_name=None, exp_list_plot=None, labels_dict=None, xlim=None, ylim=None, xlabel=None, ylabel=None,
+                 output_dir_path=None, plot_legend=True, legend_loc=None):
+        """
+        Plotting the distribution of the given property during the course of optimization
+
+        :param prop: property to be represented. Can be either a string key in the dataset.csv file or an instance
+        of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
+        :param run_idx: index of the run that is expected to be plotted (default : first run)
+        :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
+        distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
+        corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
+        :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
+        :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+        experiments of results_dict are plotted.
+        :param plot_title: title to be displayed on the plot (if None : "").
+        :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
+        :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
+        name)
+        :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
+        :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
+        :param xlabel : label of the x axis (if None, determined automatically)
+        :param ylabel : label of the y axis (if None, determined automatically)
+        :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
+        :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
+        :param plot_legend: whether to plot the legend (default True).
+        :return:
+        """
+
+        super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
+                         labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                         legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend)
+
+        self.prop = prop
+        self.run_idx = run_idx
+        self.calls_ranges = calls_ranges if calls_ranges is not None else [(0, 0), (1, float("inf"))]
+        self.bins_range = bins_range
+
+    def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
+        # Iterating over all ranges
+        for calls_range in self.calls_ranges:
+            # Computing mask for current range of number of calls to the objective function
+            mask = np.logical_and(
+                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) >= calls_range[0],
+                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) <= calls_range[1])
+
+            # Computing the property values for the current range
+            _, curr_range_property_values = _get_property_values(results_dict, experiment_key, self.run_idx,
+                                                                 self.prop, mask)
+
+            # Plotting distribution
+            sns.distplot(curr_range_property_values, label=str(calls_range), kde=False,
+                         hist_kws={"range": self.bins_range}, bins=50)
+
+
+def plot_property_distribution_plot(results_dict, prop="obj_value", run_idx=0, calls_ranges=None, bins_range=None,
+                                    exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None,
+                                    xlim=None, ylim=None, xlabel=None, ylabel=None, legend_loc="upper left",
+                                    output_dir_path=None, plot_legend=True):
+    """
+    Plotting the distribution of the given property during the course of optimization
+    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
+    :param prop: property to be represented. Can be either a string key in the dataset.csv file or an instance
+    of evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
+    :param run_idx: index of the run that is expected to be plotted (default : first run)
+    :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
+    distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
+    corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
+    :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
+    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
+    experiments of results_dict are plotted.
+    :param plot_title: title to be displayed on the plot (if None : "").
+    :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
+    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
+    name)
+    :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
+    :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
+    :param xlabel : label of the x axis (if None, determined automatically)
+    :param ylabel : label of the y axis (if None, determined automatically)
+    :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
+    :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
+    :param plot_legend: whether to plot the legend (default True).
+    :return:
+    """
+
+    PropertyDistributionPlot(prop=prop, run_idx=run_idx, calls_ranges=calls_ranges, bins_range=bins_range,
+                             exp_list_plot=exp_list_plot, plot_title=plot_title, plot_name=plot_name,
+                             labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
+                             legend_loc=legend_loc, output_dir_path=output_dir_path,
+                             plot_legend=plot_legend).plot(results_dict)
 
 
 class StableDynamicsPlot(PlotFigureTemplate):
@@ -411,102 +553,6 @@ def plot_stable_dynamics(results_dict, exp_list_plot=None, plot_title=None, plot
         results_dict)
 
 
-class PropertyDistributionPlot(PlotFigureTemplate):
-
-    def __init__(self, property="obj_value", run_idx=0, calls_ranges=None, bins_range=None, plot_title=None,
-                 plot_name=None, exp_list_plot=None, labels_dict=None, xlim=None, ylim=None, xlabel=None, ylabel=None,
-                 output_dir_path=None, plot_legend=True, legend_loc=None):
-        """
-        Plotting the distribution of the given property during the course of optimization
-
-        :param property: Property to be represented. Can be either a string key in the dataset.csv file or an instance
-        of evomol.evaluation.EvaluationStrategy
-        :param run_idx: index of the run that is expected to be plotted (default : first run)
-        :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
-        distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
-        corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
-        :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
-        :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
-        experiments of results_dict are plotted.
-        :param plot_title: title to be displayed on the plot (if None : "").
-        :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
-        :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
-        name)
-        :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
-        :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
-        :param xlabel : label of the x axis (if None, determined automatically)
-        :param ylabel : label of the y axis (if None, determined automatically)
-        :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
-        :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
-        :param plot_legend: whether to plot the legend (default True).
-        :return:
-        """
-
-        super().__init__(plot_title=plot_title, plot_name=plot_name, exp_list_plot=exp_list_plot,
-                         labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
-                         legend_loc=legend_loc, output_dir_path=output_dir_path, plot_legend=plot_legend)
-
-        self.property = property
-        self.run_idx = run_idx
-        self.calls_ranges = calls_ranges if calls_ranges is not None else [(0, 0), (1, float("inf"))]
-        self.bins_range = bins_range
-
-    def _plot_experiment_content(self, results_dict, experiment_key, linestyle, marker):
-
-        # Iterating over all ranges
-        for calls_range in self.calls_ranges:
-
-            # Computing mask for current range of number of calls to the objective function
-            mask = np.logical_and(
-                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) >= calls_range[0],
-                np.array(results_dict[experiment_key]["dataset_success_n_calls"][self.run_idx]) <= calls_range[1])
-
-            # Computing the property values for the current range
-            _, curr_range_property_values = _get_property_values(results_dict, experiment_key, self.run_idx,
-                                                                 self.property, mask)
-
-            # Plotting distribution
-            sns.distplot(curr_range_property_values, label=str(calls_range), kde=False,
-                         hist_kws={"range": self.bins_range}, bins=50)
-
-
-def plot_property_distribution_plot(results_dict, property="obj_value", run_idx=0, calls_ranges=None, bins_range=None,
-                                    exp_list_plot=None, plot_title=None, plot_name=None, labels_dict=None,
-                                    xlim=None, ylim=None, xlabel=None, ylabel=None, legend_loc="upper left",
-                                    output_dir_path=None, plot_legend=True):
-    """
-    Plotting the distribution of the given property during the course of optimization
-    :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
-    :param property: Property to be represented. Can be either a string key in the dataset.csv file or an instance
-    of evomol.evaluation.EvaluationStrategy
-    :param run_idx: index of the run that is expected to be plotted (default : first run)
-    :param calls_ranges: list of tuples that specify the range of calls to the objective function that each
-    distribution represents. If None : [(0, 0), (1, float("inf"))], which means that the first distribution
-    corresponds to the solutions in the initial dataset, and the second corresponds to all the solutions generated.
-    :param bins_range: range of bins for histogram representation (if None, (x.min(), x.max()))
-    :param exp_list_plot: list of experiments keys to be plotted (must match the keys in results_dict). If None all
-    experiments of results_dict are plotted.
-    :param plot_title: title to be displayed on the plot (if None : "").
-    :param plot_name: name to be used to save the output png file (if None, the same as plot_title)
-    :param labels_dict: dictionary mapping an experiment key with a name for the legend (if None the key is used as
-    name)
-    :param xlim: (xmin, xmax) tuple that specifies the x limits. If None, limits are set automatically.
-    :param ylim: (ymin, ymax) tuple that specifies the y limits. If None, limits are set automatically.
-    :param xlabel : label of the x axis (if None, determined automatically)
-    :param ylabel : label of the y axis (if None, determined automatically)
-    :param legend_loc: str key that describes the location of the legend (if None, default is "upper left").
-    :param output_dir_path: path to the directory in which the plot will be saved. If None, the plot is not saved.
-    :param plot_legend: whether to plot the legend (default True).
-    :return:
-    """
-
-    PropertyDistributionPlot(property=property, run_idx=run_idx, calls_ranges=calls_ranges, bins_range=bins_range,
-                             exp_list_plot=exp_list_plot, plot_title=plot_title, plot_name=plot_name,
-                             labels_dict=labels_dict, xlim=xlim, ylim=ylim, xlabel=xlabel, ylabel=ylabel,
-                             legend_loc=legend_loc, output_dir_path=output_dir_path,
-                             plot_legend=plot_legend).plot(results_dict)
-
-
 def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, plot_title=None, labels_dict=None):
     """
     Displaying a pd.Dataframe array that contains the Expected RunTime (ERT) for the given experiments and targets.
@@ -550,14 +596,14 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
 
         # Computing ERT based on calls
         if xunit == "calls":
-            ERT_vect = compute_ERT(
+            ERT_vect, n_success_vect = compute_ERT(
                 obj_calls_list=results_dict[experiment_name]["dataset_success_n_calls"],
                 obj_values_list=results_dict[experiment_name]["dataset_success_obj_value"],
                 targets=ert_targets
             )
         # Computing ERT based on time
         elif xunit == "time":
-            ERT_vect = compute_ERT_timestamps(
+            ERT_vect, n_success_vect = compute_ERT_timestamps(
                 timestamps_list=results_dict[experiment_name]["timestamps"],
                 obj_values_list=results_dict[experiment_name]["best_scores_timestamps"],
                 targets=ert_targets,
@@ -566,34 +612,36 @@ def display_ert(results_dict, ert_targets, xunit="calls", exp_list_plot=None, pl
 
         ERT_dict["Experiment"].append(display_experiment_name)
         for j in range(len(ERT_vect)):
-            ERT_dict[output_keys[j + 1]].append(ERT_vect[j])
+            ERT_dict[output_keys[j + 1]].append(str(ERT_vect[j]) + " (" + str(n_success_vect[j]) + ")")
+
 
     # Displaying resulting array
     df = pd.DataFrame.from_dict(ERT_dict)
-    pd.set_option("precision", 0)
+    pd.set_option("display.precision", 0)
     display(df)
     return df
 
 
-def _get_property_values(results_dict, exp_key, run_id, property, mask=None):
+def _get_property_values(results_dict, exp_key, run_id, prop, mask=None):
     """
     Computing the vector of property values for the given run of the given experiment using the given property.
     The property can be either a string key that matches the key used in the output CSV file, or an
-    evomol.evaluation.EvaluationStrategy instance that will be used in this function to compute the property values.
+    evomol.evaluation.EvaluationStrategyComposant instance that will be used in this function to compute the property values.
 
     :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
     :param exp_key: key of the experiment in results_dict
     :param run_id: numerical index of the run
-    :param property: string key or evomol.evaluation.EvaluationStrategy instance
+    :param prop: property that is retrieved : string key in the dataset.csv file or an instance of
+    evomol.evaluation.EvaluationStrategyComposant (default : objective function value).
     :param mask: mask (if None, all values are selected)
     :return: tuple(str, numpy.ndarray) that contains the key of the property and its values
     """
 
     if mask is None:
-        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id], )), True)
+        mask = np.full((len(results_dict[exp_key]["dataset_success_smiles"][run_id]),), True)
 
     # Computing properties
-    if isinstance(property, EvaluationStrategyComposant):
+    if isinstance(prop, EvaluationStrategyComposant):
 
         # Extracting SMILES list
         smiles_list = np.array(results_dict[exp_key]["dataset_success_smiles"][run_id])[mask]
@@ -601,16 +649,16 @@ def _get_property_values(results_dict, exp_key, run_id, property, mask=None):
         property_values = []
         for smi in smiles_list:
             try:
-                property_values.append(property.evaluate_individual(MolGraph(MolFromSmiles(smi)))[0])
+                property_values.append(prop.evaluate_individual(MolGraph(MolFromSmiles(smi)))[0])
             except EvaluationError as e:
                 property_values.append(np.nan)
 
-        return property.keys()[0], np.array(property_values)
+        return prop.keys()[0], np.array(property_values)
 
     # Extracting property values from results_dict
     else:
-        return property, np.array(np.array(results_dict[exp_key]["dataset_success_" + property][run_id])[mask],
-                                  dtype=np.float)
+        return prop, np.array(np.array(results_dict[exp_key]["dataset_success_" + prop][run_id])[mask],
+                              dtype=np.float)
 
 
 def _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol):
@@ -646,7 +694,15 @@ def _compute_mols_to_plot_legends(properties_values, smiles_list, n_mol):
 
         # Adding property value to legend
         for j in range(n_mol):
-            legends[j] += "{:.2f}".format(prop_values[mask_sol][j])
+            curr_val = prop_values[mask_sol][j]
+
+            # Can be written as an integer
+            if isinstance(curr_val, int) or (isinstance(curr_val, float) and curr_val.is_integer()):
+                legends[j] += str(int(curr_val))
+
+            # Is a float with non null decimal values
+            else:
+                legends[j] += "{:.2f}".format(curr_val)
 
         # Adding closing bracket or comma to legend
         if i == len(properties_values.keys()) - 1 and i > 0:
@@ -667,7 +723,7 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
     :param results_dict: dictionary that contains data for all runs (see bbomol.postprocessing.postprocessing).
     :param properties: List of properties to be represented as legend. The first one is used to sort the solutions.
     If None, the objective function is used as only property (=["obj_value"]). Properties can be given either as string
-    keys in dataset.csv or as instances of evomol.evaluation.EvaluationStrategy
+    keys in dataset.csv or as instances of evomol.evaluation.EvaluationStrategyComposant
     :param n_mol_per_run: number of solutions that are plotted for each run of each experiment
     :param n_mol_per_row: number of solutions that are plotted in each row
     :param size: size in pixels of each solution
@@ -732,6 +788,14 @@ def draw_best_solutions(results_dict, properties=None, n_mol_per_run=5, n_mol_pe
 
         # Saving image
         if output_dir_path is not None:
+
+            # Making sure the image is a PIL.Image even if launched from a notebook
+            if not isinstance(img, Image.Image):
+                buf = io.BytesIO()
+                buf.write(img.data)
+                buf.seek(0)
+                img = Image.open(buf)
+
             with open(join(output_dir_path, "best_sol_" + str(properties) + "_" + exp_name_display + ".png"),
                       "wb") as f:
                 img.save(f, "png")

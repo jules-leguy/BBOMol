@@ -5,7 +5,7 @@ Surrogate-based black-box optimization of molecular properties
 
 BBOMol depends on [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) for evolutionary optimization of the surrogate 
 function. Follow first the installation steps described on <a href='https://github.com/jules-leguy/evomol'>EvoMol 
-repository</a>. Make sure to follow **Installation** and **DFT and Molecular Mechanics optimization** sections.
+repository</a>. Make sure to follow **Installation** and **DFT optimization** sections.
 
 Then follow the following commands to install BBOMol.
 
@@ -13,9 +13,6 @@ Then follow the following commands to install BBOMol.
 $ git clone https://github.com/jules-leguy/BBOMol.git     # Cloning repository
 $ cd BBOMol                                               # Moving into BBOMol directory
 $ conda activate evomolenv                                # Activating anaconda environment
-$ conda install scikit-learn=0.22.1                       # Installing additional scikit-learn dependency
-$ pip install dscribe                                     # Installing additional DScribe dependency
-$ conda install -c conda-forge notebook                   # Installing jupyter-notebook to access the reproduction notebooks
 $ python -m pip install .                                 # Installing BBOMol
 ```
 
@@ -25,11 +22,12 @@ is required to compute the molecular descriptors.
 ```shell script
 $ cd ..                                                   # Go back to the previous directory if you are still in the BBOMol installation directory
 $ git clone https://github.com/jules-leguy/ChemDesc.git   # Clone ChemDesc
-$ cd chemdesc                                             # Move into ChemDesc directory
-$ conda activate evomolenv                                # Activate evomolenv environment
+$ cd ChemDesc                                             # Move into ChemDesc directory
+$ conda activate evomolenv                                # Activate environment
+$ conda install -c conda-forge dscribe                    # Installing DScribe dependency
+$ conda install scikit-learn                              # Installing Scikit-Learn dependency
 $ python -m pip install .                                 # Install ChemDesc
 ```
-
 
 To use BBOMol, make sure to activate the *evomolenv* conda environment.
 
@@ -80,6 +78,9 @@ that is used as a surrogate of the objective function. This includes the setting
 be set with a dictionary containing the following entries.
 * ```"GPR_instance"``` : instance of sklearn.gaussian_process.GaussianProcessRegressor (**default :** 
 ```GaussianProcessRegressor(1.0*RBF(1.0)+WhiteKernel(1.0), normalize_y=True)```)
+* ```"max_train_size"``` : maximum possible size of the surrogate training dataset. If more samples are available in the
+dataset of solutions (including solutions of design of experiments) then max_train_size samples are sampled uniformly
+before each training (at the beginning of each optimization step).
 * ```"descriptor"```: a dictionary that defines the descriptor to be used to represent the solutions. The ```"type"``` 
 attribute is used to select the descriptor, which can be configured using the following set of attributes.
   * ```"type"``` : name of the descriptor to be used.
@@ -91,13 +92,14 @@ attribute is used to select the descriptor, which can be configured using the fo
 
 * *Parameter common to MBTR and SOAP*
   * ```"species"```: list of atomic symbols that can be represented (**["H", "C", "O", "N", "F"]**).
+* *Parameters common to Shingles and random vectors*
+  * ```"vect_size"```: size of the descriptor (**2000**).
 * *Parameters specific to MBTR (see 
 [DScribe documentation](https://singroup.github.io/dscribe/latest/tutorials/descriptors/mbtr.html))*
   * ```"atomic_numbers_n"```, ```"inverse_distances_n"```, ```"cosine_angles_n"```: number of bins to 
 respectively encode the atomic numbers (**10**), the interatomic distances (**25**) and interatomic angles (**25**).
 * *Parameters specific to the vector of shingles*
   * ```"lvl"``` : radius of the shingles (**1**).
-  * ```"vect_size"```: size of the descriptor (**2000**).
   * ```"count"``` : if False, the descriptor is a boolean vector that represents whether the i<sup>th</sup> shingle is 
 present in the molecule. If True, the descriptor is an integer vector that counts the number of occurrences of the 
 i<sup>th</sup> shingle in the molecule (**True**).
@@ -110,16 +112,20 @@ that will be used as index in the output representation.
 harmonics (**6**).
   * ```"average"``` : whether to average all local environments (**"inner"**, "outer") or to consider the environments
 independently ("off").
-
+* *Parameters specific to the Gaussian random vector*
+  * ```"mu"``` : mean of the Gaussian distribution (**0**)
+  * ```"sigma"``` : standard deviation of the Gaussian distribution (**1**)
+  
 ### Merit optimization parameters
 
 The ```"merit_optim_parameters"``` attribute is used to describe the merit function and the parameters of its 
 evolutionary optimization. It can be set with a dictionary containing the following entries.
 
-* ```"merit_type"``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), or 
-the surrogate function directly ("surrogate").
-* ```"merit_EI_xi"``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
-of the expected improvement (**0.01**). This parameter is only interpreted if ```"merit_type"``` is set to "EI".
+* ```"merit_type"``` : merit function. It can be either the expected improvement of the surrogate function (**"EI"**), 
+the probability of improvement ("POI") or the surrogate function directly ("surrogate").
+* ```"merit_xi"``` : value of the [ξ parameter](https://www.csd.uwo.ca/~dlizotte/publications/lizotte_phd_thesis.pdf)
+of the expected improvement or probability of improvement (**0.01**). This parameter is only interpreted if 
+```"merit_type"``` is set to "EI" or "POI".
 * ```"evomol_parameters"``` : dictionary describing the parameters for the evolutionary optimization of the merit 
 function, using the [EvoMol](https://doi.org/10.1186/s13321-020-00458-z) algorithm. See the relevant section in 
 [EvoMol documentation](https://github.com/jules-leguy/EvoMol#search-space). The ```"action_space_parameters"```
@@ -177,6 +183,9 @@ for the experiment (**"BBOMol_optim/**).
 (**"/tmp"**).
 * ```"dft_cache_files"``` : list of paths of JSON files that store the results of previous DFT calculations (**[]**).
 * ```"dft_base"```: DFT calculations base (__"3-21G*"__).
+* ```"dft_method"``` : DFT calculations method (**B3LYP**).
+* ```"dft_n_jobs"```: number of threads assigned to each DFT calculation (**1**).
+* ```"dft_mem_mb"```: memory assigned to each DFT calculation in MB (**512**).
 This cache will be used to avoid performing DFT calculations for solutions whose OPT results are already known. Keys
 must be SMILES, that are associated with a dictionary that maps the property ("homo", "lumo", ...) with its value in eV.
 * ```"MM_program"```: program and force field used to perform molecular mechanics optimization and initial geometry of 
@@ -193,10 +202,10 @@ containing the following entries.
 parallel (**1**).
 * ```"n_jobs_desc_comput"``` : number of jobs to compute the descriptors in parallel (**1**). This parameter is ignored
 when computing the vector of shingles as it cannot be parallelized.
-* ```"n_jobs_obj_comput"```: number of jobs to evaluate the selected solutions using the objective function in parallel
-(**1**). In case of DFT evaluation, this is different to the parameter that sets the number of threads to perform DFT 
-optimizations. The latter is set to 1 by default and cannot be accessed for now, except if using an
-evomol.evaluation_dft.OPTEvaluationStrategy instance as objective function.
+* ```"n_jobs_obj_comput"```: number of jobs to evaluate the selected solutions in parallel using the objective function
+(**1**). In case of DFT evaluation, this is different from the parameter that sets the number of threads to perform each 
+DFT calculation (internal to the objective function). For the latter, see the ```dft_n_jobs``` parameter in the BBOMol
+```"io_parameters"``` dictionary.
 
 ## Visualization
 
@@ -236,7 +245,7 @@ def run_EvoMol(i):
         "io_parameters": {
             "model_path": "HOMO_EvoMol/" + str(i),
             "record_all_generated_individuals": True,
-            "dft_MM_program": "rdkit",
+            "dft_MM_program": "rdkit_mmff94",
             "dft_working_dir": os.path.abspath("test/dft_files"),
         },
         "action_space_parameters": {
@@ -306,7 +315,7 @@ plot_ecdf(
 ### Best solution
 
 Plotting the best solution found depending on the number of calls to the objective function (DFT calculations). It is 
-possible to represent the mean of the best solution across all runs (```"mean"``` keyword), to represent the min and
+possible to represent the mean of the best solution across all runs (```"mean"``` keyword for ```"metric"``` parameter), to represent the min and
 max among the best solution across all runs (```"min_max"``` keyword) or to represent both (```"both"``` keyword).
 
 ```python
@@ -314,7 +323,8 @@ from bbomol.postprocessing.plot import plot_best_so_far
 
 plot_best_so_far(
   
-    # Parameters specific to bbomol.postprocessing.plot.plot_ecdf 
+    # Parameters specific to bbomol.postprocessing.plot.plot_best_so_far
+    prop="obj_value", # Property to be represented
     metric="both", # Representing both the mean of the best solution across all runs, and the minimum and maximum best solution across all runs. They can be represented independently using "mean" or "min_max".
     
     # Parameters generic to bbomol.postprocessing.plot.plot* functions
@@ -329,7 +339,12 @@ plot_best_so_far(
 <img src="test/best_so_far_both_.png" alt="Best solution" width="500"/>
 </p>
 
-
+It is also possible to specify which property to plot, using the ```"prop"``` parameter. Options available are :
+* **"obj_value"** : plotting the objective function value.
+* keyword of a property that was computed during the optimization (name of the column of interest in the *pop.csv* 
+file).
+* instance of *evomol.evaluation.EvaluationStrategyComposant* evaluating any property (see 
+*evomol.get_objective_function_instance* method in the [documentation of EvoMol](https://github.com/jules-leguy/EvoMol))
 ### Expected running time (ERT)
 Displaying the [ERT](https://doi.org/10.1080/10556788.2020.1808977) in number of calls to the objective function using targets in the range [-7, -3] eV with a step size of 1.
 

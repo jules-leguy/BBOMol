@@ -5,8 +5,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 
 from bbomol.bboalg import BBOAlg
-from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc
-from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit
+from chemdesc import MBTRDesc, ShinglesVectDesc, SOAPDesc, RandomGaussianVectorDesc
+from bbomol.merit import ExpectedImprovementMerit, SurrogateValueMerit, ProbabilityOfImprovementMerit
 from bbomol.model import GPRSurrogateModelWrapper
 from bbomol.objective import EvoMolEvaluationStrategyWrapper
 from bbomol.stop_criterion import KObjFunCallsFunctionStopCriterion
@@ -25,8 +25,10 @@ def _extract_explicit_IO_parameters(parameters_dict):
         "dft_working_dir": input_io_parameters[
             "dft_working_dir"] if "dft_working_dir" in input_io_parameters else "/tmp",
         "dft_base": input_io_parameters["dft_base"] if "dft_base" in input_io_parameters else "3-21G*",
+        "dft_method": input_io_parameters["dft_method"] if "dft_method" in input_io_parameters else "B3LYP",
         "dft_cache_files": input_io_parameters["dft_cache_files"] if "dft_cache_files" in input_io_parameters else [],
-
+        "dft_n_jobs": input_io_parameters["dft_n_jobs"] if "dft_n_jobs" in input_io_parameters else 1,
+        "dft_mem_mb": input_io_parameters["dft_mem_mb"] if "dft_mem_mb" in input_io_parameters else 512,
         "MM_program": input_io_parameters["MM_program"] if "MM_program" in input_io_parameters else "rdkit_mmff94"
     }
 
@@ -44,18 +46,18 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
     explicit_merit_optim_parameters = {
         "merit_type": input_merit_optim_parameters[
             "merit_type"] if "merit_type" in input_merit_optim_parameters else "EI",
-        "merit_EI_xi": input_merit_optim_parameters[
-            "merit_EI_xi"] if "merit_EI_xi" in input_merit_optim_parameters else 0.01,
+        # For "merit_xi" parameter, accepting both "merit_EI_xi" and "merit_xi" keys for compatibility reasons.
+        "merit_xi": input_merit_optim_parameters["merit_xi"] if "merit_xi" in input_merit_optim_parameters else input_merit_optim_parameters["merit_EI_xi"] if "merit_EI_xi" in input_merit_optim_parameters else 0.01,
         "evomol_parameters": input_merit_optim_parameters[
             "evomol_parameters"] if "evomol_parameters" in input_merit_optim_parameters else {
-                "optimization_parameters": {
-                    "max_steps": 10,
-                },
-                "action_space_parameters": {
-                    "max_heavy_atoms": 9,
-                    "atoms": "C,N,O,F"
-                }
+            "optimization_parameters": {
+                "max_steps": 10,
             },
+            "action_space_parameters": {
+                "max_heavy_atoms": 9,
+                "atoms": "C,N,O,F"
+            }
+        },
         "init_pop_size": input_merit_optim_parameters[
             "init_pop_size"] if "init_pop_size" in input_merit_optim_parameters else 10,
         "n_merit_optim_restarts": input_merit_optim_parameters[
@@ -63,7 +65,11 @@ def _extract_explicit_merit_optim_parameters(parameters_dict):
         "n_best_retrieved": input_merit_optim_parameters[
             "n_best_retrieved"] if "n_best_retrieved" in input_merit_optim_parameters else 1,
         "init_pop_strategy": input_merit_optim_parameters[
-            "init_pop_strategy"] if "init_pop_strategy" in input_merit_optim_parameters else "random_weighted"
+            "init_pop_strategy"] if "init_pop_strategy" in input_merit_optim_parameters else "random_weighted",
+        "noise_based": input_merit_optim_parameters[
+            "noise_based"] if "noise_based" in input_merit_optim_parameters else False,
+        "init_pop_zero_EI": input_merit_optim_parameters[
+            "init_pop_zero_EI"] if "init_pop_zero_EI" in input_merit_optim_parameters else True
     }
 
     for parameter in input_merit_optim_parameters:
@@ -115,6 +121,8 @@ def _extract_explicit_descriptor_parameters(descriptor_parameters_dict):
         "lvl": descriptor_parameters_dict["lvl"] if "lvl" in descriptor_parameters_dict else 1,
         "vect_size": descriptor_parameters_dict["vect_size"] if "vect_size" in descriptor_parameters_dict else 2000,
         "count": descriptor_parameters_dict["count"] if "count" in descriptor_parameters_dict else True,
+        "mu": descriptor_parameters_dict["mu"] if "mu" in descriptor_parameters_dict else 0,
+        "sigma": descriptor_parameters_dict["sigma"] if "sigma" in descriptor_parameters_dict else 1,
         "external_dict": descriptor_parameters_dict["external_dict"] if "external_dict" in descriptor_parameters_dict else None
     }
 
@@ -131,6 +139,7 @@ def _extract_explicit_surrogate_parameters(parameters_dict):
         "surrogate_parameters"] if "surrogate_parameters" in parameters_dict else {}
 
     explicit_surrogate_parameters = {
+        "max_train_size": input_surrogate_parameters["max_train_size"] if "max_train_size" in input_surrogate_parameters else float("inf"),
         "GPR_instance": input_surrogate_parameters[
             "GPR_instance"] if "GPR_instance" in input_surrogate_parameters else GaussianProcessRegressor(
             1.0 * RBF(1.0) + WhiteKernel(1.0), normalize_y=True),
@@ -183,7 +192,10 @@ def _parse_objective_function(obj_fun_explicit, IO_explicit_parameters, merit_op
             "dft_working_dir": IO_explicit_parameters["dft_working_dir"],
             "dft_cache_files": IO_explicit_parameters["dft_cache_files"],
             "dft_MM_program": IO_explicit_parameters["MM_program"],
-            "dft_base": IO_explicit_parameters["dft_base"]
+            "dft_base": IO_explicit_parameters["dft_base"],
+            "dft_method": IO_explicit_parameters["dft_method"],
+            "dft_n_jobs": IO_explicit_parameters["dft_n_jobs"],
+            "dft_mem_mb": IO_explicit_parameters["dft_mem_mb"]
         },
         # explicit_search_parameters_dict=evomol._extract_explicit_search_parameters(
         #     merit_optim_explicit_parameters["evomol_parameters"])
@@ -238,6 +250,12 @@ def _parse_descriptor(surrogate_explicit_parameters, parallelization_explicit_pa
                         n_jobs=parallelization_explicit_parameters["n_jobs_desc_comput"],
                         MM_program=IO_explicit_parameters["MM_program"])
 
+    elif surrogate_explicit_parameters["descriptor"]["type"] == "random":
+
+        desc = RandomGaussianVectorDesc(mu=surrogate_explicit_parameters["descriptor"]["mu"],
+                                        sigma=surrogate_explicit_parameters["descriptor"]["sigma"],
+                                        vect_size=surrogate_explicit_parameters["descriptor"]["vect_size"])
+
     return desc
 
 
@@ -251,13 +269,21 @@ def _parse_merit_function(merit_optim_explicit_parameters, descriptor, surrogate
     """
     if merit_optim_explicit_parameters["merit_type"] == "EI":
         return ExpectedImprovementMerit(descriptor=descriptor, surrogate=surrogate, pipeline=None,
-                                        xi=merit_optim_explicit_parameters["merit_EI_xi"])
+                                        xi=merit_optim_explicit_parameters["merit_xi"],
+                                        noise_based=merit_optim_explicit_parameters["noise_based"],
+                                        init_pop_zero_EI=merit_optim_explicit_parameters["init_pop_zero_EI"])
+    elif merit_optim_explicit_parameters["merit_type"] == "POI":
+        return ProbabilityOfImprovementMerit(descriptor=descriptor, surrogate=surrogate, pipeline=None,
+                                             xi=merit_optim_explicit_parameters["merit_xi"],
+                                             noise_based=merit_optim_explicit_parameters["noise_based"],
+                                             init_pop_zero_EI=merit_optim_explicit_parameters["init_pop_zero_EI"])
     elif merit_optim_explicit_parameters["merit_type"] == "surrogate":
         return SurrogateValueMerit(descriptor=descriptor, pipeline=None, surrogate=surrogate)
 
 
 def _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameters, merit_optim_explicit_parameters,
-                            parallelization_explicit_parameters, desc, objective, merit_function, surrogate):
+                            parallelization_explicit_parameters, surrogate_explicit_parameters, desc, objective,
+                            merit_function, surrogate):
     """
     Creating bbomol.bboalg.BBOAlg instance matching all given parameters
     :param IO_explicit_parameters:
@@ -297,7 +323,8 @@ def _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameter
         results_path=IO_explicit_parameters["results_path"],
         n_jobs_merit_optim=parallelization_explicit_parameters["n_jobs_merit_optim_restarts"],
         save_surrogate_model=IO_explicit_parameters["save_surrogate_model"],
-        period_save=IO_explicit_parameters["save_n_steps"]
+        period_save=IO_explicit_parameters["save_n_steps"],
+        max_train_size=surrogate_explicit_parameters["max_train_size"]
     )
 
 
@@ -342,7 +369,8 @@ def run_optimization(parameters_dict):
     # Creating BBOAlg instance
     bboalg_instance = _create_BBOAlg_instance(IO_explicit_parameters, BBO_optim_explicit_parameters,
                                               merit_optim_explicit_parameters, parallelization_explicit_parameters,
-                                              desc, obj_function, merit_function, surrogate)
+                                              surrogate_explicit_parameters, desc, obj_function, merit_function,
+                                              surrogate)
 
     # Running algorithm
     bboalg_instance.run()

@@ -188,6 +188,7 @@ def compute_ERT_timestamps(timestamps_list, obj_values_list, targets, effective_
 
     # Initialization of the result vector
     ERT_vect = np.zeros((len(targets),))
+    n_success_vect = np.zeros((len(targets),))
 
     # Iterating over all targets
     for i, target_value in enumerate(targets):
@@ -219,7 +220,9 @@ def compute_ERT_timestamps(timestamps_list, obj_values_list, targets, effective_
         else:
             ERT_vect[i] = np.inf
 
-    return ERT_vect
+        n_success_vect[i] = n_success
+
+    return ERT_vect, n_success_vect
 
 
 def compute_ERT(obj_calls_list, obj_values_list, targets, problem_type="max"):
@@ -244,6 +247,7 @@ def compute_ERT(obj_calls_list, obj_values_list, targets, problem_type="max"):
 
     # Initialization of the result vector
     ERT_vect = np.zeros((len(targets),))
+    n_success_vect = np.zeros((len(targets),))
 
     # Computing the max number of calls to the objective function
     max_obj_calls = np.max([np.max(obj_calls_vect) for obj_calls_vect in obj_calls_list])
@@ -287,4 +291,6 @@ def compute_ERT(obj_calls_list, obj_values_list, targets, problem_type="max"):
         else:
             ERT_vect[i] = np.inf
 
-    return ERT_vect
+        n_success_vect[i] = n_success
+
+    return ERT_vect, n_success_vect

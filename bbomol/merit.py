@@ -1,4 +1,8 @@
+import time
 from abc import abstractmethod
+
+from evomol.molgraphops.molgraph import MolGraph
+from rdkit.Chem import MolToSmiles, MolFromSmiles
 
 from .bboalg import compute_descriptors
 from evomol.evaluation import EvaluationStrategy
@@ -47,6 +51,8 @@ class Merit(EvaluationStrategy):
         :return:
         """
 
+        super().evaluate_individual(individual, to_replace_idx)
+
         X, smiles_list, success = compute_descriptors(smiles_list=[individual.to_aromatic_smiles()],
                                                       descriptor=self.descriptor, pipeline=self.pipeline,
                                                       apply_pipeline=True)
@@ -70,29 +76,42 @@ class Merit(EvaluationStrategy):
     def compute_record_scores_init_pop(self, population):
         """
         Computation of the scores of all individuals in EvoMol population at initialization.
-        This method is overriden because descriptors of the individuals of the population were already computed
+        This method is overridden because descriptors of the individuals of the population were already computed
         during the BBOAlg surrogate training.
         :param population:
         :return:
         """
 
         self.scores = []
+        self.comput_time = []
+
+        dataset_smiles_list = [MolGraph(MolFromSmiles(smi)).to_aromatic_smiles() for smi in self.dataset_smiles_list]
+
         for idx, ind in enumerate(population):
             if ind is not None:
+
+                tstart = time.time()
 
                 # Extracting SMILES of current individual
                 smi = ind.to_aromatic_smiles()
 
-                # Masking the extracting SMILES
-                mask_smi = np.array(self.dataset_smiles_list) == smi
+                # Masking the extracted SMILES
+                mask_smi = np.array(dataset_smiles_list) == smi
+
+                if np.sum(mask_smi) < 1:
+                    message = "sum " + str(np.sum(mask_smi)) + " for SMILES : " + str(smi)
+                    with open("/home/LERIA/leguy_j/log.txt", "a") as f:
+                        f.write(message + "\n")
 
                 # Extracting the transformed descriptors of given SMILES
-                X = self.dataset_X_transformed[mask_smi]
-
+                # Using [:1] to select only the first occurrence (in case the smiles has several occurrences in the
+                # dataset)
+                X = self.dataset_X_transformed[mask_smi][:1]
                 score = self.compute_merit_value(X)
 
                 # Computing score
                 self.scores.append(score)
+                self.comput_time.append(time.time() - tstart)
 
 
 class SurrogateValueMerit(Merit):
@@ -200,10 +219,105 @@ class ExpectedImprovementMerit(Merit):
         if self.init_pop_zero_EI:
 
             self.scores = []
+            self.comput_time = []
             for i, ind in enumerate(population):
                 if ind is not None:
                     self.scores.append(0)
-
+                    self.comput_time.append(0)
         else:
             print("CALL TO SUPER")
             super(ExpectedImprovementMerit, self).compute_record_scores_init_pop(population)
+
+
+class ProbabilityOfImprovementMerit(Merit):
+
+    def __init__(self, descriptor, pipeline, surrogate, xi=0.01, noise_based=False, init_pop_zero_EI=True):
+        """
+        Probability of Improvement merit function.
+        :param xi: xi exploration parameter
+        :param noise_based: whether the maximum known value is computed as the max of predictions (noise case) or as
+        the max of dataset (genuine expected improvement).
+        :param init_pop_zero_EI: whether the EI value is set to zero for individuals of initial population to gain
+        computation time for solutions of the dataset
+        """
+        super().__init__(descriptors=descriptor, pipeline=pipeline, surrogate=surrogate)
+        self.xi = xi
+        self.noised_based = noise_based
+        self.init_pop_zero_EI = init_pop_zero_EI
+
+        print("POI xi : " + str(self.xi))
+        print("noise based : " + str(noise_based))
+        print("init_pop_zero_EI : " + str(init_pop_zero_EI))
+
+        self.y_max = None
+
+    def keys(self):
+        return ["POI"]
+
+    def update_training_dataset(self, dataset_X, dataset_y, dataset_smiles):
+        super().update_training_dataset(dataset_X, dataset_y, dataset_smiles)
+
+        print("UPDATING TRAINING DATASET")
+
+        # See http://krasserm.github.io/2018/03/21/bayesian-optimization/ and
+        # https://arxiv.org/pdf/1012.2599.pdf and https://arxiv.org/abs/1012.2599 for the noise-based case
+        if self.noised_based:
+
+            # Applying pipeline on training data
+            if self.pipeline is None:
+                X_dataset_transformed = dataset_X
+            else:
+                X_dataset_transformed = self.pipeline.transform(dataset_X)
+
+            # Predicting training data
+            mu_sample = self.surrogate.predict(X_dataset_transformed)
+
+            self.y_max = np.max(mu_sample)
+
+        else:
+            self.y_max = np.max(dataset_y)
+
+    def compute_merit_value(self, X):
+        """
+        From : http://krasserm.github.io/2018/03/21/bayesian-optimization/
+
+        Computing the EI value of X that represents the descriptors of a single point.
+        X is of shape (1, descriptors dimension)
+
+        Returns:
+            Expected improvement value of the point X.
+        """
+
+        # Predicting value
+        mu = self.surrogate.predict(X)
+
+        # Computing uncertainty
+        sigma = self.surrogate.uncertainty(X)
+        sigma = sigma.reshape(-1, 1)
+
+        with np.errstate(divide='warn'):
+            imp = mu - self.y_max - self.xi
+            Z = imp / sigma
+            poi = norm.cdf(Z)
+            poi[sigma == 0] = 0.0
+
+        return poi[0][0]
+
+    def compute_record_scores_init_pop(self, population):
+        """
+        Setting EI of all defined individuals of the initial population to 0 to gain time.
+        :param population:
+        :return:
+        """
+
+        if self.init_pop_zero_EI:
+
+            self.scores = []
+            self.comput_time = []
+            for i, ind in enumerate(population):
+                if ind is not None:
+                    self.scores.append(0)
+                    self.comput_time.append(0)
+        else:
+            print("CALL TO SUPER")
+            super(ProbabilityOfImprovementMerit, self).compute_record_scores_init_pop(population)
